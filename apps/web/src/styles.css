@@ -59,3 +59,8 @@ h1 { font-size: 24px; margin: 8px 0 12px; } h2 { font-size: 17px; margin: 0; }
 ol.list { padding-left: 0; }
 .row input { flex: 1; min-width: 80px; }
 .content > button { margin-bottom: 12px; }
+.btn { display: inline-block; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); color: var(--accent); text-decoration: none; background: var(--card); }
+.quick { justify-content: flex-start; margin-bottom: 12px; }
+.chart { margin: 0; } .chart svg { width: 100%; height: auto; }
+.chart-line { stroke: var(--accent); stroke-width: 2.5; } .chart-dot { fill: var(--accent); }
+.chart-target { stroke: var(--muted); stroke-dasharray: 4 4; } .chart-axis { fill: var(--muted); font-size: 11px; }

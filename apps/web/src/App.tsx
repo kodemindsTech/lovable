@@ -11,6 +11,8 @@ import Placeholder from "./pages/Placeholder";
 import Nutrition from "./pages/Nutrition";
 import Workout from "./pages/Workout";
 import WorkoutSession from "./pages/WorkoutSession";
+import Activity from "./pages/Activity";
+import Progress from "./pages/Progress";
 import Settings from "./pages/Settings";
 import { Privacy, Terms } from "./pages/Legal";
 
@@ -35,8 +37,8 @@ function Gate() {
         <Route path="nutrition" element={<Nutrition />} />
         <Route path="workout" element={<Workout />} />
         <Route path="workout/:id" element={<WorkoutSession />} />
-        <Route path="activity" element={<Placeholder title="Activity" phase="Phase 4" />} />
-        <Route path="progress" element={<Placeholder title="Progress" phase="Phase 4" />} />
+        <Route path="activity" element={<Activity />} />
+        <Route path="progress" element={<Progress />} />
         <Route path="coach" element={<Placeholder title="AI Coach" phase="Phase 6" />} />
         <Route path="reports" element={<Placeholder title="Reports" phase="Phase 7" />} />
         <Route path="settings" element={<Settings />} />
