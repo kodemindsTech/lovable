@@ -11,6 +11,7 @@ const nav = [
 const extra = [
   { to: "/activity", label: "Activity" },
   { to: "/reports", label: "Reports" },
+  { to: "/subscription", label: "Subscription" },
   { to: "/settings", label: "Settings" },
 ];
 

@@ -4,6 +4,7 @@ import { addDays, localDate } from "../lib/date";
 import { cacheWeeklyReport, getReport, loadWhatChanged, requestNarrative, storedNarrative, type Narrative, type ReportKind, type WhatChanged } from "../lib/reports";
 import { CoachError } from "../lib/coach";
 import { ScreenState } from "../components/ScreenState";
+import { FeatureGate } from "../components/FeatureGate";
 
 type Tab = "week" | "month" | "changed";
 
@@ -17,7 +18,7 @@ export default function Reports() {
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "" : "ghost"} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
-      {tab === "changed" ? <Changed /> : <PeriodReport key={tab} kind={tab} />}
+      {tab === "changed" ? <Changed /> : <FeatureGate feature="weekly_reports"><PeriodReport key={tab} kind={tab} /></FeatureGate>}
     </>
   );
 }

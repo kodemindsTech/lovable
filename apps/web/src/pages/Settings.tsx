@@ -58,7 +58,7 @@ export default function Settings() {
         <button className="danger" disabled={busy || confirm !== "DELETE"} onClick={deleteAccount}>Delete my account</button>
       </section>
       {msg && <p role="alert">{msg}</p>}
-      <p className="muted"><Link to="/privacy">Privacy</Link> · <Link to="/terms">Terms</Link></p>
+      <p className="muted"><Link to="/subscription">Subscription</Link> · <Link to="/privacy">Privacy</Link> · <Link to="/terms">Terms</Link></p>
     </>
   );
 }

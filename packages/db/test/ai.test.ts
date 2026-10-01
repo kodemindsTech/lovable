@@ -1,11 +1,14 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
-import { as, makeDb, newUser } from "./harness";
+import { as, givePlan, makeDb, newUser } from "./harness";
 
 let db: PGlite; let a: string; let b: string;
 const count = async (who: string, q: string) => ((await as(db, who, () => db.query(q))).rows[0] as { c: number }).c;
 
-beforeAll(async () => { db = await makeDb(); a = await newUser(db, "a@x.com"); b = await newUser(db, "b@x.com"); });
+beforeAll(async () => {
+  db = await makeDb(); a = await newUser(db, "a@x.com"); b = await newUser(db, "b@x.com");
+  await givePlan(db, a, "pro"); await givePlan(db, b, "pro");
+});
 
 describe("AI consent", () => {
   it("defaults to false; latest decision wins", async () => {
@@ -20,7 +23,7 @@ describe("AI consent", () => {
 
 describe("AI quota", () => {
   it("allows up to the limit, then refuses", async () => {
-    await db.query("update app_settings set value = '{\"coach_daily\": 2}' where key = 'ai_quota'");
+    await db.query("update plan_features set daily_limit = 2 where plan_id = 'pro' and feature_key = 'ai_coach'");
     const r1 = await as(db, a, () => db.query("select ai_consume('coach') r"));
     expect((r1.rows[0] as { r: number }).r).toBe(1);
     await as(db, a, () => db.query("select ai_consume('coach')"));
@@ -36,6 +39,9 @@ describe("AI quota", () => {
   });
   it("fails closed when unconfigured or unauthenticated", async () => {
     await expect(as(db, b, () => db.query("select ai_consume('unknown_kind')"))).rejects.toThrow(/not_configured/);
+    await db.query("update plan_features set daily_limit = null where plan_id='pro' and feature_key='weekly_reports'");
+    await expect(as(db, b, () => db.query("select ai_consume('report')"))).rejects.toThrow(/not_configured/);
+    await db.query("update plan_features set daily_limit = 10 where plan_id='pro' and feature_key='weekly_reports'");
     await expect(as(db, null, () => db.query("select ai_consume('coach')"))).rejects.toThrow();
   });
 });

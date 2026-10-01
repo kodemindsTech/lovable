@@ -15,6 +15,9 @@ import Activity from "./pages/Activity";
 import Progress from "./pages/Progress";
 import Coach from "./pages/Coach";
 import Reports from "./pages/Reports";
+import Subscription from "./pages/Subscription";
+import Pricing from "./pages/Pricing";
+import { EntitlementsProvider } from "./lib/entitlements";
 import Settings from "./pages/Settings";
 import { Privacy, Terms } from "./pages/Legal";
 
@@ -27,12 +30,14 @@ function Gate() {
       <Routes>
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="*" element={<Login />} />
       </Routes>
     );
   if (pLoading || error) return <ScreenState loading={pLoading} error={error} onRetry={reload} />;
   if (!profile?.onboarding_completed) return <Onboarding onDone={reload} />;
   return (
+    <EntitlementsProvider>
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
@@ -44,11 +49,14 @@ function Gate() {
         <Route path="coach" element={<Coach />} />
         <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="subscription" element={<Subscription />} />
+        <Route path="pricing" element={<Pricing />} />
         <Route path="privacy" element={<Privacy />} />
         <Route path="terms" element={<Terms />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+    </EntitlementsProvider>
   );
 }
 

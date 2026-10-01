@@ -6,6 +6,7 @@ import {
   searchExercises, updateSession, type Exercise, type SetRow, type Session,
 } from "../lib/workouts";
 import { ScreenState } from "../components/ScreenState";
+import { useEntitlements } from "../lib/entitlements";
 
 type Hist = { date: string; sets: SessionSets }[];
 
@@ -68,6 +69,7 @@ function ExerciseCard(p: {
 }) {
   const [w, setW] = useState(""); const [r, setR] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const { has } = useEntitlements();
   const sug = suggestNext(p.hist.map((h) => h.sets), { equipment: p.ex.equipment });
   const pb = personalBests(p.hist.map((h) => h.sets));
   const last = p.hist[0];
@@ -87,7 +89,8 @@ function ExerciseCard(p: {
       <div className="row"><h2>{p.ex.name}</h2><button className="ghost" onClick={p.onRemove}>Remove</button></div>
       <div className="muted">{p.ex.muscle_group} · {p.ex.equipment}</div>
       {last && <div className="muted">Last time ({last.date}): {last.sets.map((s) => duration ? `${s.reps ?? ""}` : `${s.weightKg ?? "BW"}×${s.reps}`).join(", ")}</div>}
-      {!duration && (
+      {!duration && !has("workout_progression") && <p className="muted small">Progression suggestions are part of Pro. <Link to="/subscription">See plans</Link></p>}
+      {!duration && has("workout_progression") && (
         <div className="suggest" aria-label="Suggestion">
           <strong>{sug.kind === "no_history" ? "Suggestion" : "Next target"}</strong>
           <div>{sug.reason}</div>

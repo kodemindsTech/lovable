@@ -3,17 +3,12 @@ import type { ChatTurn, CoachResult, ContextInput, LLMClient } from "@fitness-os
 import { buildApp, makeLimiter } from "../src/app";
 import type { Deps, UserScope } from "../src/deps";
 import { summariseWeek } from "../src/loader";
+import { input } from "./fixtures";
 import { buildReport, shiftDate, type DaySummary } from "@fitness-os/core";
 
-const input: ContextInput = {
-  date: "2026-01-15", hour: 19, waterMl: 500, currentWeightKg: 81, avg7WeightKg: 81.2, targetWeightKg: 75, week: null, diet: "non_vegetarian", foods: [],
-  day: { goal: "lose_fat", targets: { calories: 2100, proteinG: 150, carbsG: 220, fatG: 60, fibreG: 30, steps: 9000 },
-    totals: { calories: 1760, proteinG: 137, carbsG: 180, fatG: 55, fibreG: 25 }, mealsLogged: 4, stepsToday: 11420, activeMinutes: null,
-    workoutsLast7: 3, trainingDays: 3, weightTrendKgPerWeek: null, hour: 19, dayComplete: false },
-};
 const goodReply = JSON.stringify({ status: "on_track", summary: "You need about 13 g more protein.", priority: "Protein", recommendations: ["Add yogurt"], confidence: 0.8, safety_flag: false });
 
-interface State { reportSaves: unknown[]; reportFails: boolean; consent: boolean; quota: "ok" | "quota_exceeded"; saved: { msg: string; r: CoachResult }[]; quotaCalls: number; conv: boolean; saveFails: boolean; loadFails: boolean }
+interface State { entitled: boolean; plan: string; sub: { planId: string; interval: string; status: string; providerSubscriptionId: string | null } | null; prices: Set<string>; trialOk: boolean; reportSaves: unknown[]; reportFails: boolean; consent: boolean; quota: "ok" | "quota_exceeded"; saved: { msg: string; r: CoachResult }[]; quotaCalls: number; conv: boolean; saveFails: boolean; loadFails: boolean }
 const dayS = (date: string, o: Partial<DaySummary> = {}): DaySummary => ({ date, mealsLogged: 3, calories: 2000, proteinG: 100, fibreG: 28, steps: 9500, workouts: 0, runKm: 0, weightKg: null, ...o });
 const sampleReport = buildReport(Array.from({ length: 14 }, (_, i) => dayS(shiftDate("2026-01-05", i), i < 7 ? { proteinG: 120 } : {})),
   { start: "2026-01-12", end: "2026-01-18", targets: input.day.targets, goal: "lose_fat", tdee: 2500, trainingDays: 3 }, { start: "2026-01-05", end: "2026-01-11" });
@@ -21,6 +16,12 @@ let st: State;
 const scope = (): UserScope => ({
   userId: "u1",
   hasConsent: async () => st.consent,
+  hasFeature: async () => st.entitled,
+  getPrice: async (plan, interval) => (st.prices.has(`${plan}:${interval}`) ? { amountMinor: 29900, currency: "INR", providerPriceId: null } : null),
+  getSubscription: async () => st.sub,
+  currentPlan: async () => st.plan,
+  trialEligible: async () => st.trialOk,
+  email: () => "u@example.com",
   consumeQuota: async () => { st.quotaCalls++; return st.quota; },
   loadReport: async () => { if (st.reportFails) throw new Error("boom with user data"); return sampleReport; },
   saveNarrative: async (_w, _r, res) => { st.reportSaves.push(res); },
@@ -36,7 +37,7 @@ const llmOk: LLMClient = { complete: async () => goodReply };
 const post = (app: ReturnType<typeof mk>, body: object = {}, token: string | null = "good") =>
   app.inject({ method: "POST", url: "/v1/coach/messages", headers: token ? { authorization: `Bearer ${token}` } : {}, payload: { message: "What should I eat tonight?", local_date: "2026-01-15", local_hour: 19, ...body } });
 
-beforeEach(() => { st = { reportSaves: [], reportFails: false, consent: true, quota: "ok", saved: [], quotaCalls: 0, conv: true, saveFails: false, loadFails: false }; });
+beforeEach(() => { st = { entitled: true, plan: "free", sub: null, prices: new Set(["pro:month", "pro:year", "pro_plus:month"]), trialOk: true, reportSaves: [], reportFails: false, consent: true, quota: "ok", saved: [], quotaCalls: 0, conv: true, saveFails: false, loadFails: false }; });
 
 describe("POST /v1/coach/messages", () => {
   it("returns an AI reply, persists both turns, and attaches the engine score + disclaimer", async () => {

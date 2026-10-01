@@ -10,6 +10,7 @@ import { ScreenState } from "../components/ScreenState";
 import { MacroBar } from "../components/MacroBars";
 import { ScoreCard } from "../components/ScoreCard";
 import { NextActions } from "../components/NextActions";
+import { FeatureGate } from "../components/FeatureGate";
 import { loadWhatChanged, type WhatChanged } from "../lib/reports";
 import { ChangeList } from "./Reports";
 
@@ -36,12 +37,14 @@ export default function Dashboard() {
         <Link className="btn" to="/nutrition">+ Food</Link><Link className="btn" to="/workout">+ Workout</Link>
         <Link className="btn" to="/progress">+ Weight</Link><Link className="btn" to="/activity">+ Run</Link>
       </div>
+      <FeatureGate feature="daily_fitness_score" compact>
       {intel.error ? (
         <div role="alert" className="card">
           <p>Your data is saved. Insights are temporarily unavailable.</p>
           <button onClick={intel.retry}>Retry</button>
         </div>
       ) : intel.data ? <ScoreCard score={intel.data.score} /> : <p role="status" className="muted">Working out your score…</p>}
+      </FeatureGate>
       {targets && totals && (
         <section className="card">
           <MacroBar label="Calories" current={totals.calories} target={targets.calories} unit=" kcal" />

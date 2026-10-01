@@ -78,3 +78,6 @@ ol.list { padding-left: 0; }
 .change.good { color: var(--accent); } .change.bad { color: #b42318; }
 .stats4 { grid-template-columns: repeat(2, 1fr); margin-bottom: 12px; } .stats4 .stat { font-size: 18px; }
 @media (min-width: 900px) { .stats4 { grid-template-columns: repeat(4, 1fr); } }
+.plans { display: grid; gap: 12px; } .plan ul { padding-left: 18px; margin: 8px 0; } .plan.current { border-color: var(--accent); }
+.plan .stat small { font-size: 13px; font-weight: 400; }
+@media (min-width: 900px) { .plans { grid-template-columns: repeat(3, 1fr); } }

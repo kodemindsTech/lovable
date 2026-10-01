@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CoachError, SUGGESTED, hasAiConsent, latestConversation, sendMessage, setAiConsent, type CoachReply, type CoachResponse, type StoredMessage } from "../lib/coach";
 import { ScreenState } from "../components/ScreenState";
+import { FeatureGate } from "../components/FeatureGate";
 
 interface Turn { id: string; role: "user" | "assistant"; text: string; reply?: CoachReply; source?: CoachResponse["source"] | null; fallback?: CoachResponse["fallback_reason"] }
 
@@ -13,6 +14,10 @@ const FALLBACK_TEXT: Record<NonNullable<CoachResponse["fallback_reason"]>, strin
 };
 
 export default function Coach() {
+  return <FeatureGate feature="ai_coach"><CoachInner /></FeatureGate>;
+}
+
+function CoachInner() {
   const [consent, setConsent] = useState<boolean | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [conv, setConv] = useState<string | undefined>();
