@@ -28,10 +28,7 @@ export async function makeDb() {
     grant all on all tables in schema public to authenticated, service_role;
     grant select on plans, plan_prices, plan_features to anon;
     grant all on all sequences in schema public to authenticated;
-    grant execute on all functions in schema public to authenticated, service_role;
-    revoke execute on function delete_my_account() from anon;
-    revoke execute on function apply_subscription_event(jsonb) from authenticated, anon;
-    revoke execute on function ai_consume(text) from anon;`);
+    `);   // function privileges come from the migrations themselves (0011), not from this harness
   return db;
 }
 

@@ -4,6 +4,7 @@ import { addDays, localDate } from "../lib/date";
 import { cacheWeeklyReport, getReport, loadWhatChanged, requestNarrative, storedNarrative, type Narrative, type ReportKind, type WhatChanged } from "../lib/reports";
 import { CoachError } from "../lib/coach";
 import { ScreenState } from "../components/ScreenState";
+import { ChangeList } from "../components/ChangeList";
 import { FeatureGate } from "../components/FeatureGate";
 import { track } from "../lib/analytics";
 
@@ -22,13 +23,6 @@ export default function Reports() {
       {tab === "changed" ? <Changed /> : <FeatureGate feature="weekly_reports"><PeriodReport key={tab} kind={tab} /></FeatureGate>}
     </>
   );
-}
-
-const sentimentClass = (c: Change) => (c.sentiment === "better" ? "good" : c.sentiment === "worse" ? "bad" : "");
-
-export function ChangeList({ items, empty }: { items: Change[]; empty: string }) {
-  if (!items.length) return <p className="muted">{empty}</p>;
-  return <ul className="list">{items.map((c) => <li key={c.key} className={`change ${sentimentClass(c)}`}>{c.direction === "up" ? "▲" : "▼"} {c.text}</li>)}</ul>;
 }
 
 function Changed() {

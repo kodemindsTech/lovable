@@ -161,3 +161,30 @@ describe("admin kill switch (feature flag)", () => {
     st.flagOn = false; expect((await post(mk(llmOk), { message: "I want to kill myself" })).json().source).toBe("safety");
   });
 });
+
+describe("hardening", () => {
+  it("sets security headers on every response, including errors", async () => {
+    for (const r of [await mk(llmOk).inject({ url: "/healthz" }), await post(mk(llmOk), {}, null), await mk(llmOk).inject({ url: "/nope" })]) {
+      expect(r.headers["x-content-type-options"]).toBe("nosniff"); expect(r.headers["cache-control"]).toBe("no-store"); expect(r.headers["x-frame-options"]).toBe("DENY");
+    }
+  });
+  it("unknown routes return safe JSON 404", async () => { const r = await mk(llmOk).inject({ url: "/etc/passwd" }); expect(r.statusCode).toBe(404); expect(r.json().code).toBe("not_found"); });
+  it("malformed JSON → 400 without internals", async () => {
+    const r = await mk(llmOk).inject({ method: "POST", url: "/v1/coach/messages", headers: { authorization: "Bearer good", "content-type": "application/json" }, payload: "{not json" });
+    expect(r.statusCode).toBe(400); expect(r.body).not.toMatch(/Unexpected|SyntaxError|at /);
+  });
+  it("oversized bodies are rejected", async () => {
+    const r = await mk(llmOk).inject({ method: "POST", url: "/v1/coach/messages", headers: { authorization: "Bearer good" }, payload: { message: "x".repeat(20_000) } });
+    expect(r.statusCode).toBe(413); expect(r.json().code).toBe("too_large");
+  });
+  it("CORS: only configured origins are allowed", async () => {
+    const app = buildApp({ authenticate: async () => null, llm: null }, { corsOrigins: ["https://app.example.com"] });
+    const ok = await app.inject({ method: "OPTIONS", url: "/v1/coach/messages", headers: { origin: "https://app.example.com", "access-control-request-method": "POST" } });
+    const bad = await app.inject({ method: "OPTIONS", url: "/v1/coach/messages", headers: { origin: "https://evil.example", "access-control-request-method": "POST" } });
+    expect(ok.headers["access-control-allow-origin"]).toBe("https://app.example.com"); expect(bad.headers["access-control-allow-origin"]).toBeUndefined();
+  });
+  it("error responses never include user content or tokens", async () => {
+    st.loadFails = true; const r = await post(mk(llmOk), { message: "my secret diary entry" });
+    expect(r.body).not.toMatch(/secret diary|Bearer|good/);
+  });
+});

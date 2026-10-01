@@ -12,7 +12,7 @@ import { ScoreCard } from "../components/ScoreCard";
 import { NextActions } from "../components/NextActions";
 import { FeatureGate } from "../components/FeatureGate";
 import { loadWhatChanged, type WhatChanged } from "../lib/reports";
-import { ChangeList } from "./Reports";
+import { ChangeList } from "../components/ChangeList";
 import { supabase } from "../lib/supabase";
 
 export default function Dashboard() {

@@ -1,5 +1,9 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -10,6 +14,26 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
-      - run: pnpm test
+      - run: pnpm test            # core, db (RLS/RPC/security invariants), data, ai, api, web unit tests
       - run: pnpm build
-        env: { VITE_SUPABASE_URL: http://localhost, VITE_SUPABASE_ANON_KEY: ci }
+        env: { VITE_SUPABASE_URL: http://localhost, VITE_SUPABASE_ANON_KEY: ci-anon-key-0000000000 }
+      - run: pnpm audit --prod    # fails on known vulnerabilities in production dependencies
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @fitness-os/web exec playwright install --with-deps chromium
+      - run: pnpm e2e             # mobile + desktop, mocked backend, axe accessibility checks
+        env: { CI: "true" }
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-results, path: apps/web/test-results }
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f apps/api/Dockerfile -t fitness-os-api .

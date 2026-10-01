@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { isConfigured } from "./lib/supabase";
@@ -13,21 +14,24 @@ import Workout from "./pages/Workout";
 import WorkoutSession from "./pages/WorkoutSession";
 import Activity from "./pages/Activity";
 import Progress from "./pages/Progress";
-import Coach from "./pages/Coach";
-import Reports from "./pages/Reports";
-import Subscription from "./pages/Subscription";
+const Coach = lazy(() => import("./pages/Coach"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Subscription = lazy(() => import("./pages/Subscription"));
 import Pricing from "./pages/Pricing";
 import { EntitlementsProvider } from "./lib/entitlements";
-import AdminLayout from "./pages/admin/AdminLayout";
-import Overview from "./pages/admin/Overview";
-import AdminUsers from "./pages/admin/Users";
-import { FoodsAdmin, ExercisesAdmin } from "./pages/admin/Catalog";
-import PricingAdmin from "./pages/admin/Pricing";
-import AiMonitoring from "./pages/admin/AiMonitoring";
-import FeedbackAdmin from "./pages/admin/Feedback";
-import Announcements from "./pages/admin/Announcements";
-import { FlagsAdmin, SettingsAdmin } from "./pages/admin/System";
-import { AdminsAdmin, AuditAdmin } from "./pages/admin/Admins";
+const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
+const Overview = lazy(() => import("./pages/admin/Overview"));
+const AdminUsers = lazy(() => import("./pages/admin/Users"));
+const FoodsAdmin = lazy(() => import("./pages/admin/Catalog").then((m) => ({ default: m.FoodsAdmin })));
+const ExercisesAdmin = lazy(() => import("./pages/admin/Catalog").then((m) => ({ default: m.ExercisesAdmin })));
+const PricingAdmin = lazy(() => import("./pages/admin/Pricing"));
+const AiMonitoring = lazy(() => import("./pages/admin/AiMonitoring"));
+const FeedbackAdmin = lazy(() => import("./pages/admin/Feedback"));
+const Announcements = lazy(() => import("./pages/admin/Announcements"));
+const FlagsAdmin = lazy(() => import("./pages/admin/System").then((m) => ({ default: m.FlagsAdmin })));
+const SettingsAdmin = lazy(() => import("./pages/admin/System").then((m) => ({ default: m.SettingsAdmin })));
+const AdminsAdmin = lazy(() => import("./pages/admin/Admins").then((m) => ({ default: m.AdminsAdmin })));
+const AuditAdmin = lazy(() => import("./pages/admin/Admins").then((m) => ({ default: m.AuditAdmin })));
 import { AdminRoleProvider } from "./lib/admin";
 import Settings from "./pages/Settings";
 import { Privacy, Terms } from "./pages/Legal";
@@ -50,6 +54,7 @@ function Gate() {
   return (
     <EntitlementsProvider>
     <AdminRoleProvider>
+    <Suspense fallback={<ScreenState loading />}>
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
@@ -83,6 +88,7 @@ function Gate() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+    </Suspense>
     </AdminRoleProvider>
     </EntitlementsProvider>
   );

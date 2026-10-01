@@ -1,0 +1,11 @@
+# Security headers (Netlify / Cloudflare Pages format). Replace the two placeholders for your deployment.
+#   https://YOUR-PROJECT.supabase.co  → your Supabase URL      https://api.example.com → your API origin
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://YOUR-PROJECT.supabase.co https://api.example.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -37,6 +37,19 @@ export function buildApp(deps: Deps, opts: { corsOrigins?: string[]; rateLimitPe
   const app = Fastify({ logger: false, bodyLimit: 8 * 1024 });
   const allow = makeLimiter(opts.rateLimitPerMin ?? 10, 60_000);
   const log = deps.log ?? (() => undefined);
+  // Defence in depth for an API that only returns JSON.
+  app.addHook("onSend", async (_req, reply) => {
+    reply.header("x-content-type-options", "nosniff").header("cache-control", "no-store").header("referrer-policy", "no-referrer")
+      .header("content-security-policy", "default-src 'none'; frame-ancestors 'none'").header("x-frame-options", "DENY");
+  });
+  app.setNotFoundHandler((_req, reply) => reply.code(404).send({ code: "not_found", message: "Not found.", retryable: false }));
+  // Never leak internals or stack traces; framework errors (bad JSON, oversize body) become safe JSON.
+  app.setErrorHandler((err: { statusCode?: number }, _req, reply) => {
+    const status = err.statusCode && err.statusCode >= 400 && err.statusCode < 500 ? err.statusCode : 500;
+    return reply.code(status).send(status === 500
+      ? { code: "internal", message: "Something went wrong. Please try again.", retryable: true }
+      : { code: status === 413 ? "too_large" : "bad_request", message: "Invalid request.", retryable: false });
+  });
   void app.register(cors, { origin: opts.corsOrigins?.length ? opts.corsOrigins : false });
 
   app.get("/healthz", async () => ({ ok: true, ai: deps.llm !== null }));

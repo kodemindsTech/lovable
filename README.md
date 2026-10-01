@@ -2,7 +2,7 @@
 See `docs/ARCHITECTURE_PROPOSAL.md`.
 
 ## Status
-**Phase 1 (foundation) — done.** **Phase 2 (nutrition) — done.** **Phase 3 (workouts) — done.** **Phase 4 (activity, running, weight) — done.** **Phase 5 (intelligence) — done.** **Phase 6 (AI coach) — done.** **Phase 7 (reporting) — done.** **Phase 8 (monetisation) — done, except a real payment provider.** **Phase 9 (admin) — done.**
+**Phase 1 (foundation) — done.** **Phase 2 (nutrition) — done.** **Phase 3 (workouts) — done.** **Phase 4 (activity, running, weight) — done.** **Phase 5 (intelligence) — done.** **Phase 6 (AI coach) — done.** **Phase 7 (reporting) — done.** **Phase 8 (monetisation) — done, except a real payment provider.** **Phase 9 (admin) — done.** **Phase 10 (production readiness) — done as far as possible without live infrastructure.**
 - `packages/core` — target engine, nutrition math, deterministic meal-text parser (tested)
 - `packages/db` — migrations (`0001` foundation, `0002` atomic onboarding + account deletion, `0003` nutrition), draft food seed, and a PGlite-based test suite for RLS, RPCs, search, totals and deletion
 - Phase 3: `0004_workouts.sql` (exercises, sessions, sets, templates, derived exercise history) + `seed/exercises.sql` (36 draft exercises) + deterministic double-progression rules in `core/progression.ts`
@@ -29,7 +29,11 @@ See `docs/ARCHITECTURE_PROPOSAL.md`.
   - Every admin edit of shared data is recorded by a DB trigger (`audit_logs`, with old/new values); only super admins can read the log.
   - Feedback (submit in Settings, triage in admin), in-app announcements (audience: all/free/paid, dismissible), feature flags with stable per-user rollout (`ai_coach` is the AI kill switch, honoured by the API), first-party analytics events (`track_event`; names only, no health values) and aggregate metrics (DAU/WAU/MAU, D1/D7/D30 retention, logging frequency, AI usage, conversion, churn, MRR/ARPU/ARPPU).
   - **Bootstrap the first admin** with SQL (there's deliberately no UI path): `insert into admin_users(user_id, role) values ('<auth user id>', 'super');`
+- Phase 10: security review + fixes (see `docs/SECURITY.md`), schema/privilege invariant tests, API hardening (headers, safe errors, env validation, graceful shutdown, Dockerfile), web error boundary + lazy-loaded routes (app code ~32 kB gzip), CSP/headers file, Playwright e2e (27 scenarios × mobile/desktop incl. axe WCAG checks), CI (typecheck, tests, build, audit, e2e, docker build), Dependabot, deployment/testing/acceptance/launch docs.
 - `apps/web` — Vite + React: auth, onboarding (single RPC), dashboard, nutrition logging (search + describe-a-meal, edit, delete, water), settings (export / delete account), draft privacy & terms
+
+## Docs
+`docs/ARCHITECTURE_PROPOSAL.md` (design) · `docs/SECURITY.md` · `docs/DEPLOYMENT.md` · `docs/TESTING.md` · `docs/ACCEPTANCE.md` (PRD §55 status) · `docs/LAUNCH_CHECKLIST.md`
 
 ## Run
     pnpm install && pnpm typecheck && pnpm test
