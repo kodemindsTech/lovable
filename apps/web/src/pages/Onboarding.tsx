@@ -34,33 +34,18 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
         goal: f.goal, activityLevel: f.activityLevel,
       };
       const t = calcTargets(input); // throws RangeError on invalid input
-      const uid = session.user.id;
-      const row = {
-        calories: t.calories, protein_g: t.proteinG, carbs_g: t.carbsG, fat_g: t.fatG,
-        fibre_g: t.fibreG, steps: t.steps, formula_version: t.formulaVersion,
-      };
-      const birth = new Date(); birth.setFullYear(birth.getFullYear() - input.age);
-      const steps = [
-        supabase.from("consents").insert([
-          { user_id: uid, purpose: "health_data", granted: true, policy_version: "draft-1" },
-        ]),
-        supabase.from("goals").update({ active: false }).eq("user_id", uid).eq("active", true),
-      ];
-      for (const r of await Promise.all(steps)) if (r.error) throw r.error;
-      const results = [
-        await supabase.from("goals").insert({
-          user_id: uid, goal: f.goal, start_weight_kg: input.weightKg,
-          target_weight_kg: f.targetWeightKg ? Number(f.targetWeightKg) : null,
-        }),
-        await supabase.from("nutrition_targets").upsert({ user_id: uid, ...row, updated_at: new Date().toISOString() }),
-        await supabase.from("target_history").insert({ user_id: uid, ...row, inputs: input }),
-        await supabase.from("profiles").update({
-          name: f.name || null, birth_date: birth.toISOString().slice(0, 10), sex: f.sex,
-          height_cm: input.heightCm, activity_level: f.activityLevel, diet: f.diet,
-          training_days_per_week: Number(f.trainingDays), onboarding_completed: true,
-        }).eq("user_id", uid),
-      ];
-      for (const r of results) if (r.error) throw r.error;
+      const { error } = await supabase.rpc("complete_onboarding", {
+        p: {
+          name: f.name, age: input.age, sex: f.sex, height_cm: input.heightCm, weight_kg: input.weightKg,
+          target_weight_kg: f.targetWeightKg, goal: f.goal, activity_level: f.activityLevel,
+          diet: f.diet, training_days: Number(f.trainingDays), policy_version: "draft-1", inputs: input,
+          targets: {
+            calories: t.calories, protein_g: t.proteinG, carbs_g: t.carbsG, fat_g: t.fatG,
+            fibre_g: t.fibreG, steps: t.steps, formula_version: t.formulaVersion,
+          },
+        },
+      });
+      if (error) throw error;
       onDone();
     } catch (e) {
       setErr(e instanceof Error ? e.message : (e as { message?: string }).message ?? "Failed to save");
