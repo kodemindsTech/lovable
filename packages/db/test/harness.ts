@@ -22,7 +22,7 @@ export async function makeDb() {
   await db.exec(AUTH_STUB);
   for (const f of readdirSync(join(root, "migrations")).sort())
     await db.exec(readFileSync(join(root, "migrations", f), "utf8"));
-  await db.exec(readFileSync(join(root, "seed", "foods.sql"), "utf8"));
+  for (const f of ["foods.sql", "exercises.sql"]) await db.exec(readFileSync(join(root, "seed", f), "utf8"));
   await db.exec(`
     grant usage on schema public to authenticated, anon;
     grant all on all tables in schema public to authenticated;
