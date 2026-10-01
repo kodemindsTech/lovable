@@ -1,0 +1,38 @@
+:root {
+  --bg: #f6f7f9; --card: #fff; --text: #14181f; --muted: #5b6573; --accent: #0f766e; --border: #e3e6ea;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e1116; --card: #171b22; --text: #eef1f5; --muted: #9aa4b2; --accent: #2dd4bf; --border: #262c36; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); }
+.muted { color: var(--muted); }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+.auth { max-width: 420px; margin: 24px auto; display: flex; flex-direction: column; gap: 12px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+label.check { flex-direction: row; align-items: flex-start; gap: 8px; }
+input, select { padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 16px; }
+button { padding: 10px 14px; border-radius: 8px; border: 0; background: var(--accent); color: #fff; font-size: 16px; cursor: pointer; }
+button.link { background: none; color: var(--accent); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.stat { font-size: 22px; font-weight: 600; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.grid .card { margin: 0; }
+.shell { min-height: 100vh; }
+.sidebar { display: none; }
+.content { padding: 16px 16px 84px; max-width: 900px; margin: 0 auto; }
+.bottomnav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: var(--card); border-top: 1px solid var(--border); }
+.bottomnav .navlink { flex: 1; text-align: center; padding: 14px 4px; font-size: 13px; }
+.navlink { color: var(--muted); text-decoration: none; }
+.navlink.active { color: var(--accent); font-weight: 600; }
+@media (min-width: 900px) {
+  .shell { display: grid; grid-template-columns: 220px 1fr; }
+  .sidebar { display: flex; flex-direction: column; gap: 6px; padding: 20px; border-right: 1px solid var(--border); position: sticky; top: 0; height: 100vh; }
+  .sidebar .navlink { padding: 8px 10px; border-radius: 8px; }
+  .brand { margin-bottom: 12px; }
+  .bottomnav { display: none; }
+  .content { padding-bottom: 24px; width: 100%; }
+  .grid { grid-template-columns: repeat(4, 1fr); }
+}
+@media (prefers-reduced-motion: no-preference) { .card { transition: box-shadow .2s; } }
