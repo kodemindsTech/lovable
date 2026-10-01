@@ -4,3 +4,4 @@ export * from "./safety";
 export * from "./prompts";
 export * from "./llm";
 export * from "./coach";
+export * from "./narrative";

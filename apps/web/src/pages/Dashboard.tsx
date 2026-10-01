@@ -10,6 +10,8 @@ import { ScreenState } from "../components/ScreenState";
 import { MacroBar } from "../components/MacroBars";
 import { ScoreCard } from "../components/ScoreCard";
 import { NextActions } from "../components/NextActions";
+import { loadWhatChanged, type WhatChanged } from "../lib/reports";
+import { ChangeList } from "./Reports";
 
 export default function Dashboard() {
   const { session } = useAuth();
@@ -23,6 +25,8 @@ export default function Dashboard() {
     listWeights(addDays(today, -365)).then((w) => setWeightNow(w.at(-1)?.kg ?? null)).catch(() => setWeightNow(null));
   }, [today]);
 
+  const [changed, setChanged] = useState<WhatChanged | null>(null);
+  useEffect(() => { loadWhatChanged().then(setChanged).catch(() => setChanged(null)); }, []);
   const intel = useIntelligence({ profile, targets, totals, mealsLogged: logs.length, userId: session?.user.id, ready: !loading && !dLoading });
 
   return (
@@ -50,6 +54,14 @@ export default function Dashboard() {
         </section>
       )}
       {intel.data && <NextActions actions={intel.data.actions} />}
+      {changed && (
+        <section className="card" aria-label="Weekly trend">
+          <h2>What changed</h2>
+          <p className="muted small">{changed.weekLabel}</p>
+          <ChangeList items={changed.week.slice(0, 3)} empty="No meaningful changes yet." />
+          <Link to="/reports">Open reports</Link>
+        </section>
+      )}
     </ScreenState>
   );
 }

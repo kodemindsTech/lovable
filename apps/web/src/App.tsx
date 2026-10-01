@@ -14,6 +14,7 @@ import WorkoutSession from "./pages/WorkoutSession";
 import Activity from "./pages/Activity";
 import Progress from "./pages/Progress";
 import Coach from "./pages/Coach";
+import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import { Privacy, Terms } from "./pages/Legal";
 
@@ -41,7 +42,7 @@ function Gate() {
         <Route path="activity" element={<Activity />} />
         <Route path="progress" element={<Progress />} />
         <Route path="coach" element={<Coach />} />
-        <Route path="reports" element={<Placeholder title="Reports" phase="Phase 7" />} />
+        <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
         <Route path="privacy" element={<Privacy />} />
         <Route path="terms" element={<Terms />} />

@@ -2,7 +2,7 @@
 See `docs/ARCHITECTURE_PROPOSAL.md`.
 
 ## Status
-**Phase 1 (foundation) — done.** **Phase 2 (nutrition) — done.** **Phase 3 (workouts) — done.** **Phase 4 (activity, running, weight) — done.** **Phase 5 (intelligence) — done.** **Phase 6 (AI coach) — done.**
+**Phase 1 (foundation) — done.** **Phase 2 (nutrition) — done.** **Phase 3 (workouts) — done.** **Phase 4 (activity, running, weight) — done.** **Phase 5 (intelligence) — done.** **Phase 6 (AI coach) — done.** **Phase 7 (reporting) — done.**
 - `packages/core` — target engine, nutrition math, deterministic meal-text parser (tested)
 - `packages/db` — migrations (`0001` foundation, `0002` atomic onboarding + account deletion, `0003` nutrition), draft food seed, and a PGlite-based test suite for RLS, RPCs, search, totals and deletion
 - Phase 3: `0004_workouts.sql` (exercises, sessions, sets, templates, derived exercise history) + `seed/exercises.sql` (36 draft exercises) + deterministic double-progression rules in `core/progression.ts`
@@ -12,6 +12,12 @@ See `docs/ARCHITECTURE_PROPOSAL.md`.
   - `packages/ai` — context builder (compact, PII-free), structured output schema (Zod), safety layer (pre-check routes self-harm / eating-disorder / extreme-diet / medical messages to fixed vetted replies *without calling the model*; post-check rejects banned advice and numbers not present in the data), provider-agnostic `LLMClient` + Anthropic Messages API client, and the coach pipeline with one repair retry and a deterministic rules fallback. The engine's score always overrides anything the model says.
   - `apps/api` — Fastify service. `POST /v1/coach/messages` authenticates the Supabase JWT, acts *as the user* (RLS, no service-role key), requires `ai_processing` consent, enforces a server-side daily quota (`ai_consume`), rate-limits, and persists the conversation. Config: `apps/api/.env.example`. Run: `pnpm --filter @fitness-os/api dev`.
   - `0007_ai.sql` — conversations, messages, usage (read-only for users), consent check, quota function.
+- Phase 7:
+  - `core/reports.ts` — period stats (averages over days that have data, never zero-filled), meaningful-change detection ("What changed?"), weekly/monthly report with improved / declined / biggest priority / next focus, all deterministic.
+  - `packages/data` — shared RLS-scoped data loaders (`computeReport`) used by both the web app and the API.
+  - `packages/ai/narrative.ts` + `POST /v1/reports/narrative` — optional AI-written summary of the already-computed report; same grounding/safety checks and rules fallback as the coach. Separate `report_daily` quota.
+  - `0008_reports.sql` — `weekly_reports` cache, `nutrition_targets.tdee` (for the *estimated* energy balance), report quota.
+  - Web: Reports page (Weekly / Monthly / What changed?) and a "What changed" card on the dashboard.
 - `apps/web` — Vite + React: auth, onboarding (single RPC), dashboard, nutrition logging (search + describe-a-meal, edit, delete, water), settings (export / delete account), draft privacy & terms
 
 ## Run
@@ -32,5 +38,8 @@ Apply `packages/db/migrations/*.sql` in order, then `packages/db/seed/foods.sql`
 - Numeric grounding checks numbers with units; it can reject valid answers (falls back to rules) and can't verify non-numeric claims.
 - `apps/api` data loader (`loader.ts`) is not tested against a live Supabase/PostgREST; its pure aggregation is. It duplicates some gathering logic in `apps/web/src/lib/intelligence.ts` — consolidate later.
 - Quota is a flat `coach_daily` in `app_settings`; plan-based limits come with subscriptions (Phase 8). The rate limiter is in-memory per instance. The AI coach is not yet gated to Pro.
+- Reports are computed on demand when viewed (not by a scheduled job), so "automatic" generation means any week/month is available instantly; there are no push/email report notifications yet. Monthly reports are not cached.
+- "What changed?" uses rolling 7/30-day windows rather than calendar weeks/months (clearer for in-progress periods); yesterday-vs-today is nutrition/steps only and labelled "so far today".
+- Estimated energy balance = average logged intake − TDEE (from onboarding). It's an estimate, ignores unlogged days, and is only shown for accounts that have a stored TDEE and ≥3 logged days. Change thresholds (e.g. ±10% protein, ±1,000 steps, ±0.3 kg) and the "day on plan" definition (calorie band + protein ≥90%) are my defaults and need review.
 - Voice and photo logging are not built. Privacy/Terms are placeholders pending legal review.
 - Account deletion removes DB rows via `auth.users` cascade; storage/provider-side purge is needed once uploads exist.

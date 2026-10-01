@@ -3,6 +3,7 @@ import type { ChatTurn, CoachResult, ContextInput, LLMClient } from "@fitness-os
 import { buildApp, makeLimiter } from "../src/app";
 import type { Deps, UserScope } from "../src/deps";
 import { summariseWeek } from "../src/loader";
+import { buildReport, shiftDate, type DaySummary } from "@fitness-os/core";
 
 const input: ContextInput = {
   date: "2026-01-15", hour: 19, waterMl: 500, currentWeightKg: 81, avg7WeightKg: 81.2, targetWeightKg: 75, week: null, diet: "non_vegetarian", foods: [],
@@ -12,12 +13,17 @@ const input: ContextInput = {
 };
 const goodReply = JSON.stringify({ status: "on_track", summary: "You need about 13 g more protein.", priority: "Protein", recommendations: ["Add yogurt"], confidence: 0.8, safety_flag: false });
 
-interface State { consent: boolean; quota: "ok" | "quota_exceeded"; saved: { msg: string; r: CoachResult }[]; quotaCalls: number; conv: boolean; saveFails: boolean; loadFails: boolean }
+interface State { reportSaves: unknown[]; reportFails: boolean; consent: boolean; quota: "ok" | "quota_exceeded"; saved: { msg: string; r: CoachResult }[]; quotaCalls: number; conv: boolean; saveFails: boolean; loadFails: boolean }
+const dayS = (date: string, o: Partial<DaySummary> = {}): DaySummary => ({ date, mealsLogged: 3, calories: 2000, proteinG: 100, fibreG: 28, steps: 9500, workouts: 0, runKm: 0, weightKg: null, ...o });
+const sampleReport = buildReport(Array.from({ length: 14 }, (_, i) => dayS(shiftDate("2026-01-05", i), i < 7 ? { proteinG: 120 } : {})),
+  { start: "2026-01-12", end: "2026-01-18", targets: input.day.targets, goal: "lose_fat", tdee: 2500, trainingDays: 3 }, { start: "2026-01-05", end: "2026-01-11" });
 let st: State;
 const scope = (): UserScope => ({
   userId: "u1",
   hasConsent: async () => st.consent,
   consumeQuota: async () => { st.quotaCalls++; return st.quota; },
+  loadReport: async () => { if (st.reportFails) throw new Error("boom with user data"); return sampleReport; },
+  saveNarrative: async (_w, _r, res) => { st.reportSaves.push(res); },
   loadContextInput: async () => { if (st.loadFails) throw new Error("db down with user data"); return input; },
   openConversation: async (id) => (id && !st.conv ? null : { id: id ?? "11111111-1111-1111-1111-111111111111", history: [] as ChatTurn[] }),
   saveTurn: async (_c, msg, r) => { if (st.saveFails) throw new Error("x"); st.saved.push({ msg, r }); },
@@ -30,7 +36,7 @@ const llmOk: LLMClient = { complete: async () => goodReply };
 const post = (app: ReturnType<typeof mk>, body: object = {}, token: string | null = "good") =>
   app.inject({ method: "POST", url: "/v1/coach/messages", headers: token ? { authorization: `Bearer ${token}` } : {}, payload: { message: "What should I eat tonight?", local_date: "2026-01-15", local_hour: 19, ...body } });
 
-beforeEach(() => { st = { consent: true, quota: "ok", saved: [], quotaCalls: 0, conv: true, saveFails: false, loadFails: false }; });
+beforeEach(() => { st = { reportSaves: [], reportFails: false, consent: true, quota: "ok", saved: [], quotaCalls: 0, conv: true, saveFails: false, loadFails: false }; });
 
 describe("POST /v1/coach/messages", () => {
   it("returns an AI reply, persists both turns, and attaches the engine score + disclaimer", async () => {
@@ -103,5 +109,37 @@ describe("helpers", () => {
       { local_date: "d2", calories: 1800, protein_g: 100, fibre_g: 20 }], steps: [8000, 10000], workouts: 2, runKm: 5.25 });
     expect(s).toMatchObject({ days_with_food_logs: 2, avg_calories: 1900, avg_protein_g: 100, avg_steps: 9000, workouts: 2, run_km: 5.3 });
     expect(summariseWeek({ food: [], steps: [], workouts: 0, runKm: 0 })).toMatchObject({ days_with_food_logs: 0, avg_calories: null, avg_steps: null });
+  });
+});
+
+const narrativeOk = JSON.stringify({ summary: "You logged food on 7 of 7 days and averaged 2,000 kcal.", improved: [], declined: [], priority: sampleReport.priority.text, next_week_focus: [sampleReport.nextFocus[0]!] });
+const postReport = (app: ReturnType<typeof mk>, body: object = {}, token: string | null = "good") =>
+  app.inject({ method: "POST", url: "/v1/reports/narrative", headers: token ? { authorization: `Bearer ${token}` } : {}, payload: { kind: "week", start: "2026-01-12", local_date: "2026-01-15", ...body } });
+
+describe("POST /v1/reports/narrative", () => {
+  it("returns a validated AI narrative, saves it for weeks, spends report quota", async () => {
+    const r = await postReport(mk({ complete: async () => narrativeOk })); const b = r.json();
+    expect(r.statusCode).toBe(200); expect(b.source).toBe("ai"); expect(b.narrative.summary).toMatch(/7 of 7/); expect(b.saved).toBe(true);
+    expect(st.reportSaves).toHaveLength(1); expect(st.quotaCalls).toBe(1);
+  });
+  it("monthly narratives are not stored in weekly_reports", async () => {
+    const r = await postReport(mk({ complete: async () => narrativeOk }), { kind: "month", start: "2026-01-01" });
+    expect(r.statusCode).toBe(200); expect(st.reportSaves).toHaveLength(0);
+  });
+  it("auth, validation (period alignment), consent", async () => {
+    expect((await postReport(mk(llmOk), {}, null)).statusCode).toBe(401);
+    expect((await postReport(mk(llmOk), { start: "2026-01-13" })).statusCode).toBe(400);
+    expect((await postReport(mk(llmOk), { kind: "year" })).statusCode).toBe(400);
+    st.consent = false; const r = await postReport(mk(llmOk)); expect(r.statusCode).toBe(403); expect(st.quotaCalls).toBe(0);
+  });
+  it("falls back to a rules narrative when unconfigured, over quota, or the model lies", async () => {
+    expect((await postReport(mk(null))).json()).toMatchObject({ source: "rules", fallback_reason: "ai_not_configured" });
+    st.quota = "quota_exceeded"; expect((await postReport(mk(llmOk))).json()).toMatchObject({ source: "rules", fallback_reason: "quota_exceeded" });
+    st.quota = "ok"; const lie = JSON.stringify({ summary: "You averaged 9,999 kcal.", improved: [], declined: [], priority: "x", next_week_focus: [] });
+    expect((await postReport(mk({ complete: async () => lie }))).json()).toMatchObject({ source: "rules", fallback_reason: "failed_validation" });
+  });
+  it("errors don't leak details", async () => {
+    st.reportFails = true; const r = await postReport(mk(llmOk));
+    expect(r.statusCode).toBe(500); expect(r.body).not.toMatch(/boom|user data/);
   });
 });

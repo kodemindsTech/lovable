@@ -14,6 +14,7 @@
     "@fastify/cors": "^10.0.1",
     "@fitness-os/ai": "workspace:*",
     "@fitness-os/core": "workspace:*",
+    "@fitness-os/data": "workspace:*",
     "@supabase/supabase-js": "^2.45.0",
     "fastify": "^5.0.0",
     "tsx": "^4.19.0",

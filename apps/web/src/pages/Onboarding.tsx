@@ -40,7 +40,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           target_weight_kg: f.targetWeightKg, goal: f.goal, activity_level: f.activityLevel,
           diet: f.diet, training_days: Number(f.trainingDays), policy_version: "draft-1", inputs: input,
           targets: {
-            calories: t.calories, protein_g: t.proteinG, carbs_g: t.carbsG, fat_g: t.fatG,
+            calories: t.calories, tdee: t.tdee, protein_g: t.proteinG, carbs_g: t.carbsG, fat_g: t.fatG,
             fibre_g: t.fibreG, steps: t.steps, formula_version: t.formulaVersion,
           },
         },

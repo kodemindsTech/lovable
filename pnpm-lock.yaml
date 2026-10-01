@@ -19,6 +19,9 @@ importers:
       '@fitness-os/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@fitness-os/data':
+        specifier: workspace:*
+        version: link:../../packages/data
       '@supabase/supabase-js':
         specifier: ^2.45.0
         version: 2.117.2
@@ -47,6 +50,9 @@ importers:
       '@fitness-os/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@fitness-os/data':
+        specifier: workspace:*
+        version: link:../../packages/data
       '@supabase/supabase-js':
         specifier: ^2.45.0
         version: 2.117.2
@@ -96,6 +102,22 @@ importers:
         version: 2.1.9(@types/node@22.20.4)
 
   packages/core:
+    devDependencies:
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.20.4)
+
+  packages/data:
+    dependencies:
+      '@fitness-os/core':
+        specifier: workspace:*
+        version: link:../core
+      '@supabase/supabase-js':
+        specifier: ^2.45.0
+        version: 2.117.2
     devDependencies:
       typescript:
         specifier: ^5.6.0

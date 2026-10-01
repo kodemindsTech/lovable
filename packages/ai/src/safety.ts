@@ -57,8 +57,12 @@ export interface PostCheck { ok: boolean; reasons: string[] }
 
 /** Validates a model reply against safety rules and numeric grounding. */
 export function postCheck(reply: CoachReply, allowed: number[], userMessage = ""): PostCheck {
+  return checkText([reply.summary, reply.priority, ...reply.recommendations].join("\n"), allowed, userMessage);
+}
+
+/** Same checks for any model-written text (coach replies, report narratives). */
+export function checkText(text: string, allowed: number[], userMessage = ""): PostCheck {
   const reasons: string[] = [];
-  const text = [reply.summary, reply.priority, ...reply.recommendations].join("\n");
   for (const b of BANNED) if (b.test(text)) reasons.push(`banned content: ${b.source.slice(0, 40)}`);
 
   const pool = [...allowed, ...(userMessage.match(/\d+(?:\.\d+)?/g) ?? []).map(Number)];

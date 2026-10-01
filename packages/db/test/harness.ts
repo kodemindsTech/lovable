@@ -48,6 +48,6 @@ export async function as<T>(db: PGlite, uid: string | null, fn: () => Promise<T>
 export const onboardingPayload = {
   name: "Asha", age: 30, sex: "female", height_cm: 165, weight_kg: 70, target_weight_kg: 65,
   goal: "lose_fat", activity_level: "moderate", diet: "vegetarian", training_days: 3,
-  targets: { calories: 1700, protein_g: 140, carbs_g: 170, fat_g: 47, fibre_g: 25, steps: 9000, formula_version: "1.0.0" },
+  targets: { calories: 1700, protein_g: 140, carbs_g: 170, fat_g: 47, fibre_g: 25, steps: 9000, tdee: 2100, formula_version: "1.0.0" },
   inputs: { age: 30 },
 };

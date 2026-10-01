@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { CoachResult } from "@fitness-os/ai";
+import type { CoachResult, NarrativeResult } from "@fitness-os/ai";
+import type { Report } from "@fitness-os/core";
+import { computeReport } from "@fitness-os/data";
 import type { UserScope } from "./deps";
 import { loadContextInput } from "./loader";
 
@@ -20,13 +22,22 @@ export function makeAuthenticator(url: string, anonKey: string) {
         if (e) throw new Error(e.message);
         return v === true;
       },
-      async consumeQuota() {
-        const { error: e } = await c.rpc("ai_consume", { p_kind: "coach" });
+      async consumeQuota(kind) {
+        const { error: e } = await c.rpc("ai_consume", { p_kind: kind });
         if (!e) return "ok";
         if (/quota_exceeded/.test(e.message)) return "quota_exceeded";
         throw new Error(e.message);
       },
       loadContextInput: (d, h) => loadContextInput(c, d, h),
+      loadReport: (kind, start, today) => computeReport(c, { kind, start, today }),
+      async saveNarrative(weekStart: string, report: Report, r: NarrativeResult) {
+        const { error: e } = await c.from("weekly_reports").upsert({
+          user_id: userId, week_start: weekStart, report,
+          narrative: { ...r.narrative, source: r.source, fallback_reason: r.fallbackReason ?? null, version: r.version, generated_at: new Date().toISOString() },
+          generated_at: new Date().toISOString(),
+        }, { onConflict: "user_id,week_start" });
+        if (e) throw new Error(e.message);
+      },
       async openConversation(id) {
         if (!id) {
           const { data: r, error: e } = await c.from("ai_conversations").insert({ user_id: userId }).select("id").single();

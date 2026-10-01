@@ -25,22 +25,24 @@ export async function setAiConsent(granted: boolean): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-export async function sendMessage(message: string, conversationId?: string): Promise<CoachResponse> {
-  if (!API) throw new CoachError("not_configured", "The AI coach backend isn't configured (VITE_API_URL).", false);
+/** POSTs to the AI backend with the user's session token. Throws CoachError with user-safe messages. */
+export async function callApi<T>(path: string, payload: object): Promise<T> {
+  if (!API) throw new CoachError("not_configured", "The AI backend isn't configured (VITE_API_URL).", false);
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new CoachError("unauthorized", "Please sign in again.", false);
-  const now = new Date();
   let res: Response;
   try {
-    res = await fetch(`${API}/v1/coach/messages`, {
-      method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-      body: JSON.stringify({ message, conversation_id: conversationId, local_date: localDate(now), local_hour: now.getHours() + now.getMinutes() / 60 }),
-    });
+    res = await fetch(`${API}${path}`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
   } catch { throw new CoachError("network", "Your data is saved. AI insights are temporarily unavailable.", true); }
   const body = await res.json().catch(() => null);
   if (!res.ok) throw new CoachError(body?.code ?? "error", body?.message ?? "Something went wrong.", body?.retryable ?? res.status >= 500);
-  return body as CoachResponse;
+  return body as T;
+}
+
+export function sendMessage(message: string, conversationId?: string): Promise<CoachResponse> {
+  const now = new Date();
+  return callApi<CoachResponse>("/v1/coach/messages", { message, conversation_id: conversationId, local_date: localDate(now), local_hour: now.getHours() + now.getMinutes() / 60 });
 }
 
 export interface StoredMessage { id: string; role: "user" | "assistant"; content: string; structured: CoachReply | null; source: CoachResponse["source"] | null }

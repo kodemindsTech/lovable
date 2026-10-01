@@ -75,3 +75,6 @@ ol.list { padding-left: 0; }
 .bubble.bot { align-self: flex-start; background: var(--card); border: 1px solid var(--border); }
 .bubble.safety { border-color: #b45309; }
 .composer { margin-top: 12px; flex-wrap: nowrap; }
+.change.good { color: var(--accent); } .change.bad { color: #b42318; }
+.stats4 { grid-template-columns: repeat(2, 1fr); margin-bottom: 12px; } .stats4 .stat { font-size: 18px; }
+@media (min-width: 900px) { .stats4 { grid-template-columns: repeat(4, 1fr); } }

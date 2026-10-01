@@ -1,12 +1,15 @@
-import type { ChatTurn, CoachResult, ContextInput, LLMClient } from "@fitness-os/ai";
+import type { ChatTurn, CoachResult, ContextInput, LLMClient, NarrativeResult } from "@fitness-os/ai";
+import type { Report } from "@fitness-os/core";
 
 /** Everything the route needs from the outside world, so it can be tested without Supabase or an LLM. */
 export interface UserScope {
   userId: string;
   hasConsent(): Promise<boolean>;
-  consumeQuota(): Promise<"ok" | "quota_exceeded">;
+  consumeQuota(kind: "coach" | "report"): Promise<"ok" | "quota_exceeded">;
   loadContextInput(localDate: string, localHour: number): Promise<ContextInput>;
   openConversation(id: string | undefined): Promise<{ id: string; history: ChatTurn[] } | null>;
+  loadReport(kind: "week" | "month", start: string, today: string): Promise<Report>;
+  saveNarrative(weekStart: string, report: Report, result: NarrativeResult): Promise<void>;
   saveTurn(conversationId: string, userMessage: string, result: CoachResult): Promise<void>;
 }
 export interface Deps {
