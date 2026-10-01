@@ -2,11 +2,12 @@
 See `docs/ARCHITECTURE_PROPOSAL.md`.
 
 ## Status
-**Phase 1 (foundation) — done.** **Phase 2 (nutrition) — done.** **Phase 3 (workouts) — done.** **Phase 4 (activity, running, weight) — done.**
+**Phase 1 (foundation) — done.** **Phase 2 (nutrition) — done.** **Phase 3 (workouts) — done.** **Phase 4 (activity, running, weight) — done.** **Phase 5 (intelligence) — done.**
 - `packages/core` — target engine, nutrition math, deterministic meal-text parser (tested)
 - `packages/db` — migrations (`0001` foundation, `0002` atomic onboarding + account deletion, `0003` nutrition), draft food seed, and a PGlite-based test suite for RLS, RPCs, search, totals and deletion
 - Phase 3: `0004_workouts.sql` (exercises, sessions, sets, templates, derived exercise history) + `seed/exercises.sql` (36 draft exercises) + deterministic double-progression rules in `core/progression.ts`
 - Phase 4: `0005_activity_progress.sql` (activities, running sessions, weight, body measurements, integration placeholders) + `core/progress.ts` (weight 7-day average / 30-day trend, pace, weekly/monthly distance, personal bests)
+- Phase 5: `core/score.ts` (Daily Fitness Score: deterministic 0–100 adherence score, weights configurable via `app_settings.score_weights`, components without data are excluded not zeroed, in-progress days judged on pace) and `core/nextAction.ts` ("What should I do now?": 1–3 prioritised rule-based actions with real catalog food suggestions, diet-filtered, safety rules); `0006_intelligence.sql` (`daily_scores` cache)
 - `apps/web` — Vite + React: auth, onboarding (single RPC), dashboard, nutrition logging (search + describe-a-meal, edit, delete, water), settings (export / delete account), draft privacy & terms
 
 ## Run
@@ -21,5 +22,6 @@ Apply `packages/db/migrations/*.sql` in order, then `packages/db/seed/foods.sql`
 - Web UI has only helper unit tests; no automated e2e (one manual mocked-backend responsive check). No tests against real Supabase Auth.
 - Exercise instructions are short generic cues, not individual coaching; progression suggestions use fixed rep range 8–12 (not yet user-configurable). Per-exercise history is derived by query, not stored in a separate `exercise_history` table.
 - No activity integrations exist: the UI shows "Connect activity source" and all activity is manual-sourced. Health Connect/HealthKit need a native wrapper; Strava/Fitbit/Garmin need partner approval. No route/GPS data is stored.
+- Score weights/thresholds (calorie bands, 30-min activity, pace-of-day model, under-eating nudge at <50% after 20:00) are my defaults and need product/nutritionist sign-off. Score is computed client-side from the user's own data and cached in `daily_scores`; move to a server job before any feature depends on it being tamper-proof (e.g. challenges).
 - Voice and photo logging are not built. Privacy/Terms are placeholders pending legal review.
 - Account deletion removes DB rows via `auth.users` cascade; storage/provider-side purge is needed once uploads exist.

@@ -64,3 +64,8 @@ ol.list { padding-left: 0; }
 .chart { margin: 0; } .chart svg { width: 100%; height: auto; }
 .chart-line { stroke: var(--accent); stroke-width: 2.5; } .chart-dot { fill: var(--accent); }
 .chart-target { stroke: var(--muted); stroke-dasharray: 4 4; } .chart-axis { fill: var(--muted); font-size: 11px; }
+.bigscore { font-size: 56px; font-weight: 700; line-height: 1.1; margin: 8px 0; } .bigscore small { font-size: 20px; color: var(--muted); font-weight: 400; }
+.pill { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); }
+.pill.on_track { color: var(--accent); border-color: var(--accent); } .pill.slightly_off { color: #b45309; border-color: #b45309; } .pill.off_track { color: #b42318; border-color: #b42318; }
+.small { font-size: 13px; } .action { border-top: 1px solid var(--border); padding-top: 10px; } .action:first-of-type { border-top: 0; padding-top: 0; }
+.action p { margin: 4px 0; } details summary { cursor: pointer; color: var(--accent); }

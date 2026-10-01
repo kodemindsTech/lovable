@@ -67,3 +67,20 @@ describe("activity RLS", () => {
       expect(((await db.query(`select count(*)::int c from ${t} where user_id = $1`, [a])).rows[0] as { c: number }).c, t).toBe(0);
   });
 });
+
+describe("daily_scores", () => {
+  it("is private to its owner and validates range", async () => {
+    const x = await newUser(db, "x@x.com"), y = await newUser(db, "y@x.com");
+    await as(db, x, () => db.query("insert into daily_scores values ($1,'2026-01-15',86,'on_track','ok','[]','1.0.0')", [x]));
+    expect(await count(y, "select count(*)::int c from daily_scores")).toBe(0);
+    await expect(as(db, x, () => db.query("insert into daily_scores values ($1,'2026-01-16',101,'on_track','ok','[]','1.0.0')", [x]))).rejects.toThrow();
+    await expect(as(db, y, () => db.query("insert into daily_scores values ($1,'2026-01-16',50,'off_track','x','[]','1')", [x]))).rejects.toThrow();
+  });
+  it("score weights are readable but not writable by users", async () => {
+    const x = await newUser(db, "w@x.com");
+    const r = await as(db, x, () => db.query("select value from app_settings where key = 'score_weights'"));
+    expect(r.rows).toHaveLength(1);
+    await expect(as(db, x, () => db.query("update app_settings set value = '{}' where key='score_weights'"))).resolves.toBeDefined();
+    expect(((await db.query("select value::text v from app_settings where key='score_weights'")).rows[0] as { v: string }).v).toContain("calories");
+  });
+});

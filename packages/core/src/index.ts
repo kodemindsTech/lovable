@@ -4,3 +4,5 @@ export * from "./nutrition";
 export * from "./parser";
 export * from "./progression";
 export * from "./progress";
+export * from "./score";
+export * from "./nextAction";

@@ -1,23 +1,30 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useProfile } from "../lib/profile";
 import { useDay } from "../lib/nutrition";
-import { localDate } from "../lib/date";
+import { localDate, addDays } from "../lib/date";
+import { listWeights, todaySteps } from "../lib/activity";
+import { useIntelligence } from "../lib/intelligence";
+import { useAuth } from "../lib/auth";
 import { ScreenState } from "../components/ScreenState";
 import { MacroBar } from "../components/MacroBars";
-import { useEffect, useState } from "react";
-import { listWeights, todaySteps } from "../lib/activity";
-import { addDays } from "../lib/date";
+import { ScoreCard } from "../components/ScoreCard";
+import { NextActions } from "../components/NextActions";
 
 export default function Dashboard() {
-  const { profile, targets, loading, error, reload } = useProfile();
+  const { session } = useAuth();
   const today = localDate();
+  const { profile, targets, loading, error, reload } = useProfile();
+  const { totals, logs, loading: dLoading, error: dError, reload: dReload } = useDay(today);
   const [steps, setStepsToday] = useState<number | null>(null);
   const [weight, setWeightNow] = useState<number | null>(null);
   useEffect(() => {
     todaySteps(today).then(setStepsToday).catch(() => setStepsToday(null));
     listWeights(addDays(today, -365)).then((w) => setWeightNow(w.at(-1)?.kg ?? null)).catch(() => setWeightNow(null));
   }, [today]);
-  const { totals, logs, loading: dLoading, error: dError, reload: dReload } = useDay(localDate());
+
+  const intel = useIntelligence({ profile, targets, totals, mealsLogged: logs.length, userId: session?.user.id, ready: !loading && !dLoading });
+
   return (
     <ScreenState loading={loading || dLoading} error={error ?? dError} onRetry={() => { void reload(); void dReload(); }}>
       <h1>Hi{profile?.name ? `, ${profile.name}` : ""}</h1>
@@ -25,10 +32,12 @@ export default function Dashboard() {
         <Link className="btn" to="/nutrition">+ Food</Link><Link className="btn" to="/workout">+ Workout</Link>
         <Link className="btn" to="/progress">+ Weight</Link><Link className="btn" to="/activity">+ Run</Link>
       </div>
-      <section className="card">
-        <h2>Daily fitness score</h2>
-        <p className="muted">Available once scoring is built (Phase 5). Nothing is estimated in the meantime.</p>
-      </section>
+      {intel.error ? (
+        <div role="alert" className="card">
+          <p>Your data is saved. Insights are temporarily unavailable.</p>
+          <button onClick={intel.retry}>Retry</button>
+        </div>
+      ) : intel.data ? <ScoreCard score={intel.data.score} /> : <p role="status" className="muted">Working out your score…</p>}
       {targets && totals && (
         <section className="card">
           <MacroBar label="Calories" current={totals.calories} target={targets.calories} unit=" kcal" />
@@ -40,14 +49,7 @@ export default function Dashboard() {
           <p className="muted">Weight: {weight == null ? "not logged yet" : `${weight} kg (latest entry)`} · <Link to="/progress">Progress</Link></p>
         </section>
       )}
-      <section className="card">
-        <h2>What should I do now?</h2>
-        {logs.length ? (
-          <p className="muted">Recommendations arrive in Phase 5.</p>
-        ) : (
-          <p className="muted">No meals logged today. <Link to="/nutrition">Log your first meal</Link></p>
-        )}
-      </section>
+      {intel.data && <NextActions actions={intel.data.actions} />}
     </ScreenState>
   );
 }
