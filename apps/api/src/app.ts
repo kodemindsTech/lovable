@@ -62,7 +62,8 @@ export function buildApp(deps: Deps, opts: { corsOrigins?: string[]; rateLimitPe
       if (!safety && !(await scope.hasFeature("ai_coach")))
         return reply.code(402).send({ code: "upgrade_required", feature: "ai_coach", message: "The AI coach is part of Pro. Upgrade to use it.", retryable: false });
       // Only spend quota when the model will actually be called.
-      const needsModel = deps.llm !== null && !safety;
+      const aiOn = await scope.flagEnabled("ai_coach");   // admin kill switch
+      const needsModel = deps.llm !== null && !safety && aiOn;
       const quota = needsModel ? await scope.consumeQuota("coach") : "ok";
       if (quota === "not_in_plan") return reply.code(402).send({ code: "upgrade_required", feature: "ai_coach", message: "The AI coach is part of Pro. Upgrade to use it.", retryable: false });
 
@@ -70,8 +71,9 @@ export function buildApp(deps: Deps, opts: { corsOrigins?: string[]; rateLimitPe
       if (!conv) return reply.code(404).send({ code: "not_found", message: "Conversation not found.", retryable: false });
       const context = buildContext(input);
 
-      let result: CoachResult = await runCoach({ llm: quota === "ok" ? deps.llm : null, context, history: conv.history, message });
+      let result: CoachResult = await runCoach({ llm: quota === "ok" && aiOn ? deps.llm : null, context, history: conv.history, message });
       if (quota === "quota_exceeded") result = { ...result, fallbackReason: "quota_exceeded" };
+      else if (!aiOn && result.source === "rules") result = { ...result, fallbackReason: "ai_unavailable" };
 
       let saved = true;
       await scope.saveTurn(conv.id, message, result).catch(() => { saved = false; }); // never lose the answer over a save failure
@@ -103,11 +105,13 @@ export function buildApp(deps: Deps, opts: { corsOrigins?: string[]; rateLimitPe
         return reply.code(403).send({ code: "consent_required", message: "Please agree to AI processing of your fitness data first.", retryable: false });
       if (!(await scope.hasFeature("weekly_reports")))
         return reply.code(402).send({ code: "upgrade_required", feature: "weekly_reports", message: "Report summaries are part of Pro. Upgrade to use them.", retryable: false });
-      const quota = deps.llm !== null ? await scope.consumeQuota("report") : "ok";
+      const aiOn = await scope.flagEnabled("ai_coach");
+      const quota = deps.llm !== null && aiOn ? await scope.consumeQuota("report") : "ok";
       if (quota === "not_in_plan") return reply.code(402).send({ code: "upgrade_required", feature: "weekly_reports", message: "Report summaries are part of Pro. Upgrade to use them.", retryable: false });
       const report = await scope.loadReport(kind, start, local_date);
-      let result = await runNarrative({ llm: quota === "ok" ? deps.llm : null, report, kind });
+      let result = await runNarrative({ llm: quota === "ok" && aiOn ? deps.llm : null, report, kind });
       if (quota === "quota_exceeded") result = { ...result, fallbackReason: "quota_exceeded" };
+      else if (!aiOn) result = { ...result, fallbackReason: "ai_unavailable" };
       let saved = true;
       if (kind === "week") await scope.saveNarrative(start, report, result).catch(() => { saved = false; });
       log("report_narrative", { kind, source: result.source, fallback: result.fallbackReason, ms: Date.now() - started, saved });

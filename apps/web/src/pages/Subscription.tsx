@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { describeSubscription, type SubscriptionState } from "@fitness-os/core";
 import { callApi, CoachError } from "../lib/coach";
+import { track, trackOnce } from "../lib/analytics";
 import { useEntitlements } from "../lib/entitlements";
 import { PlanCards } from "../components/PlanCards";
 import { ScreenState } from "../components/ScreenState";
@@ -17,13 +18,14 @@ export default function Subscription() {
   // After returning from checkout the webhook may lag: refresh a few times.
   useEffect(() => {
     if (params.get("checkout") !== "success") return;
+    trackOnce("subscription_started");
     let n = 0; const t = setInterval(() => { void reload(); if (++n >= 5) clearInterval(t); }, 3000);
     void reload(); return () => clearInterval(t);
   }, [params, reload]);
 
   async function act(path: string, body: object, ok: string) {
     setBusy(true); setMsg(null);
-    try { const r = await callApi<{ checkout_url?: string }>(path, body); if (r.checkout_url) { window.location.assign(r.checkout_url); return; } setMsg(ok); await reload(); }
+    try { const r = await callApi<{ checkout_url?: string }>(path, body); if (r.checkout_url) { window.location.assign(r.checkout_url); return; } setMsg(ok); if (path.endsWith("/cancel")) track("subscription_cancelled"); await reload(); }
     catch (e) { setMsg(e instanceof CoachError && e.code === "billing_not_configured" ? "Payments aren't available yet." : (e as Error).message); }
     finally { setBusy(false); }
   }

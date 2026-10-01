@@ -6,6 +6,8 @@ import type { BillingDeps } from "./billing";
 export interface UserScope {
   userId: string;
   hasConsent(): Promise<boolean>;
+  /** Remote kill switch / rollout (feature_flags). */
+  flagEnabled(key: string): Promise<boolean>;
   /** Is the feature part of the caller's current plan? (Server-side entitlement check.) */
   hasFeature(feature: string): Promise<boolean>;
   consumeQuota(kind: "coach" | "report"): Promise<"ok" | "quota_exceeded" | "not_in_plan">;

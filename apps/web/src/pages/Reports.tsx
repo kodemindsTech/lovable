@@ -5,6 +5,7 @@ import { cacheWeeklyReport, getReport, loadWhatChanged, requestNarrative, stored
 import { CoachError } from "../lib/coach";
 import { ScreenState } from "../components/ScreenState";
 import { FeatureGate } from "../components/FeatureGate";
+import { track } from "../lib/analytics";
 
 type Tab = "week" | "month" | "changed";
 
@@ -62,7 +63,7 @@ function PeriodReport({ kind }: { kind: ReportKind }) {
   const load = useCallback(async () => {
     setError(null); setReport(null); setNarr(null); setNErr(null);
     try {
-      const r = await getReport(kind, start); setReport(r);
+      const r = await getReport(kind, start); setReport(r); track("weekly_report_viewed");
       if (kind === "week") { void cacheWeeklyReport(start, r); setNarr(await storedNarrative(start).catch(() => null)); }
     } catch (e) { setError((e as Error).message); }
   }, [kind, start]);

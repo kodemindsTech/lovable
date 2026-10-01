@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import { useAuth } from "./auth";
+import { track } from "./analytics";
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
 export const MEALS: { key: MealType; label: string }[] = [
@@ -35,6 +36,7 @@ const normaliseFood = (f: Food): Food => ({
 export async function logFood(foodId: string, date: string, meal: MealType, quantity: number) {
   const { error } = await supabase.rpc("log_food", { p_food_id: foodId, p_date: date, p_meal: meal, p_quantity: quantity });
   if (error) throw error;
+  track("food_logged");
 }
 export async function updateQuantity(id: string, quantity: number) {
   const { error } = await supabase.rpc("update_food_log_quantity", { p_id: id, p_quantity: quantity });

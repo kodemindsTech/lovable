@@ -8,7 +8,7 @@ import { buildReport, shiftDate, type DaySummary } from "@fitness-os/core";
 
 const goodReply = JSON.stringify({ status: "on_track", summary: "You need about 13 g more protein.", priority: "Protein", recommendations: ["Add yogurt"], confidence: 0.8, safety_flag: false });
 
-interface State { entitled: boolean; plan: string; sub: { planId: string; interval: string; status: string; providerSubscriptionId: string | null } | null; prices: Set<string>; trialOk: boolean; reportSaves: unknown[]; reportFails: boolean; consent: boolean; quota: "ok" | "quota_exceeded"; saved: { msg: string; r: CoachResult }[]; quotaCalls: number; conv: boolean; saveFails: boolean; loadFails: boolean }
+interface State { flagOn: boolean; entitled: boolean; plan: string; sub: { planId: string; interval: string; status: string; providerSubscriptionId: string | null } | null; prices: Set<string>; trialOk: boolean; reportSaves: unknown[]; reportFails: boolean; consent: boolean; quota: "ok" | "quota_exceeded"; saved: { msg: string; r: CoachResult }[]; quotaCalls: number; conv: boolean; saveFails: boolean; loadFails: boolean }
 const dayS = (date: string, o: Partial<DaySummary> = {}): DaySummary => ({ date, mealsLogged: 3, calories: 2000, proteinG: 100, fibreG: 28, steps: 9500, workouts: 0, runKm: 0, weightKg: null, ...o });
 const sampleReport = buildReport(Array.from({ length: 14 }, (_, i) => dayS(shiftDate("2026-01-05", i), i < 7 ? { proteinG: 120 } : {})),
   { start: "2026-01-12", end: "2026-01-18", targets: input.day.targets, goal: "lose_fat", tdee: 2500, trainingDays: 3 }, { start: "2026-01-05", end: "2026-01-11" });
@@ -16,6 +16,7 @@ let st: State;
 const scope = (): UserScope => ({
   userId: "u1",
   hasConsent: async () => st.consent,
+  flagEnabled: async () => st.flagOn,
   hasFeature: async () => st.entitled,
   getPrice: async (plan, interval) => (st.prices.has(`${plan}:${interval}`) ? { amountMinor: 29900, currency: "INR", providerPriceId: null } : null),
   getSubscription: async () => st.sub,
@@ -37,7 +38,7 @@ const llmOk: LLMClient = { complete: async () => goodReply };
 const post = (app: ReturnType<typeof mk>, body: object = {}, token: string | null = "good") =>
   app.inject({ method: "POST", url: "/v1/coach/messages", headers: token ? { authorization: `Bearer ${token}` } : {}, payload: { message: "What should I eat tonight?", local_date: "2026-01-15", local_hour: 19, ...body } });
 
-beforeEach(() => { st = { entitled: true, plan: "free", sub: null, prices: new Set(["pro:month", "pro:year", "pro_plus:month"]), trialOk: true, reportSaves: [], reportFails: false, consent: true, quota: "ok", saved: [], quotaCalls: 0, conv: true, saveFails: false, loadFails: false }; });
+beforeEach(() => { st = { flagOn: true, entitled: true, plan: "free", sub: null, prices: new Set(["pro:month", "pro:year", "pro_plus:month"]), trialOk: true, reportSaves: [], reportFails: false, consent: true, quota: "ok", saved: [], quotaCalls: 0, conv: true, saveFails: false, loadFails: false }; });
 
 describe("POST /v1/coach/messages", () => {
   it("returns an AI reply, persists both turns, and attaches the engine score + disclaimer", async () => {
@@ -142,5 +143,21 @@ describe("POST /v1/reports/narrative", () => {
   it("errors don't leak details", async () => {
     st.reportFails = true; const r = await postReport(mk(llmOk));
     expect(r.statusCode).toBe(500); expect(r.body).not.toMatch(/boom|user data/);
+  });
+});
+
+describe("admin kill switch (feature flag)", () => {
+  it("coach answers from rules and never calls the model or spends quota when the flag is off", async () => {
+    st.flagOn = false; let called = 0;
+    const b = (await post(mk({ complete: async () => { called++; return goodReply; } }))).json();
+    expect(b.source).toBe("rules"); expect(b.fallback_reason).toBe("ai_unavailable"); expect(called).toBe(0); expect(st.quotaCalls).toBe(0);
+  });
+  it("report summaries too", async () => {
+    st.flagOn = false; let called = 0;
+    const b = (await postReport(mk({ complete: async () => { called++; return narrativeOk; } }))).json();
+    expect(b.source).toBe("rules"); expect(b.fallback_reason).toBe("ai_unavailable"); expect(called).toBe(0);
+  });
+  it("safety replies still work", async () => {
+    st.flagOn = false; expect((await post(mk(llmOk), { message: "I want to kill myself" })).json().source).toBe("safety");
   });
 });

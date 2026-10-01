@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { track } from "../lib/analytics";
 import { calcTargets, type ActivityLevel, type Goal, type Sex } from "@fitness-os/core";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
@@ -15,6 +16,7 @@ const levels: [ActivityLevel, string][] = [
 
 export default function Onboarding({ onDone }: { onDone: () => void }) {
   const { session } = useAuth();
+  useEffect(() => { track("onboarding_started"); }, []);
   const [f, setF] = useState({
     name: "", age: "", sex: "male" as Sex, heightCm: "", weightKg: "", targetWeightKg: "",
     goal: "lose_fat" as Goal, activityLevel: "moderate" as ActivityLevel,
@@ -46,6 +48,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
         },
       });
       if (error) throw error;
+      track("onboarding_completed");
       onDone();
     } catch (e) {
       setErr(e instanceof Error ? e.message : (e as { message?: string }).message ?? "Failed to save");

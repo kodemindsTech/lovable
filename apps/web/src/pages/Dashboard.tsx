@@ -13,6 +13,7 @@ import { NextActions } from "../components/NextActions";
 import { FeatureGate } from "../components/FeatureGate";
 import { loadWhatChanged, type WhatChanged } from "../lib/reports";
 import { ChangeList } from "./Reports";
+import { supabase } from "../lib/supabase";
 
 export default function Dashboard() {
   const { session } = useAuth();
@@ -28,10 +29,27 @@ export default function Dashboard() {
 
   const [changed, setChanged] = useState<WhatChanged | null>(null);
   useEffect(() => { loadWhatChanged().then(setChanged).catch(() => setChanged(null)); }, []);
+  const [notes, setNotes] = useState<{ id: string; title: string; body: string }[]>([]);
+  useEffect(() => {
+    (async () => {
+      const { data: flags } = await supabase.rpc("my_flags");
+      if ((flags as Record<string, boolean> | null)?.announcements === false) return;
+      const [n, d] = await Promise.all([supabase.from("notifications").select("id,title,body").order("created_at", { ascending: false }).limit(3), supabase.from("notification_dismissals").select("notification_id")]);
+      const gone = new Set((d.data ?? []).map((x: { notification_id: string }) => x.notification_id));
+      setNotes(((n.data ?? []) as { id: string; title: string; body: string }[]).filter((x) => !gone.has(x.id)));
+    })().catch(() => setNotes([]));
+  }, []);
+  const dismiss = async (id: string) => {
+    setNotes((x) => x.filter((n) => n.id !== id));
+    if (session) await supabase.from("notification_dismissals").insert({ user_id: session.user.id, notification_id: id }).then(() => undefined, () => undefined);
+  };
   const intel = useIntelligence({ profile, targets, totals, mealsLogged: logs.length, userId: session?.user.id, ready: !loading && !dLoading });
 
   return (
     <ScreenState loading={loading || dLoading} error={error ?? dError} onRetry={() => { void reload(); void dReload(); }}>
+      {notes.map((n) => (
+        <section key={n.id} className="card banner" role="note"><div className="row"><strong>{n.title}</strong><button className="link" aria-label={`Dismiss ${n.title}`} onClick={() => dismiss(n.id)}>Dismiss</button></div><p>{n.body}</p></section>
+      ))}
       <h1>Hi{profile?.name ? `, ${profile.name}` : ""}</h1>
       <div className="row quick" aria-label="Quick actions">
         <Link className="btn" to="/nutrition">+ Food</Link><Link className="btn" to="/workout">+ Workout</Link>

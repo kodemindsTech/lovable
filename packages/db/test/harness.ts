@@ -10,7 +10,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const AUTH_STUB = `
 create role authenticated nologin; create role anon nologin; create role service_role nologin bypassrls;
 create schema auth;
-create table auth.users (id uuid primary key default gen_random_uuid(), email text);
+create table auth.users (id uuid primary key default gen_random_uuid(), email text, created_at timestamptz not null default now());
 create function auth.uid() returns uuid language sql stable as
   $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 grant usage on schema auth to authenticated, anon;
@@ -68,4 +68,8 @@ export async function givePlan(db: PGlite, uid: string, plan: "pro" | "pro_plus"
      values ($1,$2,'month',$3,$4,$5,$6, now()) on conflict (user_id) do update set plan_id=excluded.plan_id, status=excluded.status,
        current_period_end=excluded.current_period_end, grace_until=excluded.grace_until, trial_end=excluded.trial_end`,
     [uid, plan, opts.status ?? "active", opts.periodEnd ?? new Date(Date.now() + 20 * 864e5).toISOString(), opts.graceUntil ?? null, opts.trialEnd ?? null]);
+}
+
+export async function makeAdmin(db: PGlite, uid: string, role: "support" | "content" | "finance" | "super") {
+  await db.query("insert into admin_users(user_id, role) values ($1,$2) on conflict (user_id) do update set role = excluded.role", [uid, role]);
 }

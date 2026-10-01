@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { Run, WeightPoint } from "@fitness-os/core";
+import { track } from "./analytics";
 
 export interface ActivityRow {
   id: string; local_date: string; type: "steps" | "run" | "walk" | "cycle" | "other";
@@ -13,12 +14,14 @@ const must = <T>(r: { data: T; error: { message: string } | null }): T => { if (
 const n = (v: unknown) => (v == null ? null : Number(v));
 const uid = async () => (await supabase.auth.getUser()).data.user!.id;
 
-export const setSteps = async (date: string, steps: number) => { must(await supabase.rpc("set_steps", { p_date: date, p_steps: steps })); };
+export const setSteps = async (date: string, steps: number) => { must(await supabase.rpc("set_steps", { p_date: date, p_steps: steps })); track("activity_logged"); };
 export const logRun = async (date: string, km: number, min: number, kcal: number | null, hr: number | null) => {
   must(await supabase.rpc("log_run", { p_date: date, p_distance_km: km, p_duration_min: min, p_active_kcal: kcal, p_avg_hr: hr }));
+  track("activity_logged");
 };
 export async function logOther(date: string, type: "walk" | "cycle" | "other", km: number | null, min: number | null, kcal: number | null) {
   must(await supabase.from("activities").insert({ user_id: await uid(), local_date: date, type, distance_km: km, duration_min: min, active_kcal: kcal }));
+  track("activity_logged");
 }
 export const deleteActivity = async (id: string) => { must(await supabase.from("activities").delete().eq("id", id)); };
 
@@ -29,7 +32,7 @@ export async function listActivities(sinceDate: string): Promise<ActivityRow[]> 
 export const toRuns = (rows: ActivityRow[]): Run[] =>
   rows.filter((r) => r.type === "run" && r.distance_km && r.duration_min).map((r) => ({ date: r.local_date, distanceKm: r.distance_km!, durationMin: r.duration_min! }));
 
-export const setWeight = async (date: string, kg: number) => { must(await supabase.rpc("set_weight", { p_date: date, p_kg: kg })); };
+export const setWeight = async (date: string, kg: number) => { must(await supabase.rpc("set_weight", { p_date: date, p_kg: kg })); track("weight_logged"); };
 export async function listWeights(sinceDate: string): Promise<WeightPoint[]> {
   const rows = must(await supabase.from("weight_logs").select("local_date, weight_kg").gte("local_date", sinceDate).order("local_date")) ?? [];
   return rows.map((r: { local_date: string; weight_kg: unknown }) => ({ date: r.local_date, kg: Number(r.weight_kg) }));

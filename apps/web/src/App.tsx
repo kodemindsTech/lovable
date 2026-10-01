@@ -18,6 +18,17 @@ import Reports from "./pages/Reports";
 import Subscription from "./pages/Subscription";
 import Pricing from "./pages/Pricing";
 import { EntitlementsProvider } from "./lib/entitlements";
+import AdminLayout from "./pages/admin/AdminLayout";
+import Overview from "./pages/admin/Overview";
+import AdminUsers from "./pages/admin/Users";
+import { FoodsAdmin, ExercisesAdmin } from "./pages/admin/Catalog";
+import PricingAdmin from "./pages/admin/Pricing";
+import AiMonitoring from "./pages/admin/AiMonitoring";
+import FeedbackAdmin from "./pages/admin/Feedback";
+import Announcements from "./pages/admin/Announcements";
+import { FlagsAdmin, SettingsAdmin } from "./pages/admin/System";
+import { AdminsAdmin, AuditAdmin } from "./pages/admin/Admins";
+import { AdminRoleProvider } from "./lib/admin";
 import Settings from "./pages/Settings";
 import { Privacy, Terms } from "./pages/Legal";
 
@@ -38,6 +49,7 @@ function Gate() {
   if (!profile?.onboarding_completed) return <Onboarding onDone={reload} />;
   return (
     <EntitlementsProvider>
+    <AdminRoleProvider>
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
@@ -49,6 +61,21 @@ function Gate() {
         <Route path="coach" element={<Coach />} />
         <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<Overview />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="foods" element={<FoodsAdmin />} />
+          <Route path="exercises" element={<ExercisesAdmin />} />
+          <Route path="pricing" element={<PricingAdmin />} />
+          <Route path="ai" element={<AiMonitoring />} />
+          <Route path="feedback" element={<FeedbackAdmin />} />
+          <Route path="announcements" element={<Announcements />} />
+          <Route path="flags" element={<FlagsAdmin />} />
+          <Route path="settings" element={<SettingsAdmin />} />
+          <Route path="admins" element={<AdminsAdmin />} />
+          <Route path="audit" element={<AuditAdmin />} />
+        </Route>
         <Route path="subscription" element={<Subscription />} />
         <Route path="pricing" element={<Pricing />} />
         <Route path="privacy" element={<Privacy />} />
@@ -56,6 +83,7 @@ function Gate() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+    </AdminRoleProvider>
     </EntitlementsProvider>
   );
 }

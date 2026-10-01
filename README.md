@@ -2,7 +2,7 @@
 See `docs/ARCHITECTURE_PROPOSAL.md`.
 
 ## Status
-**Phase 1 (foundation) — done.** **Phase 2 (nutrition) — done.** **Phase 3 (workouts) — done.** **Phase 4 (activity, running, weight) — done.** **Phase 5 (intelligence) — done.** **Phase 6 (AI coach) — done.** **Phase 7 (reporting) — done.** **Phase 8 (monetisation) — done, except a real payment provider.**
+**Phase 1 (foundation) — done.** **Phase 2 (nutrition) — done.** **Phase 3 (workouts) — done.** **Phase 4 (activity, running, weight) — done.** **Phase 5 (intelligence) — done.** **Phase 6 (AI coach) — done.** **Phase 7 (reporting) — done.** **Phase 8 (monetisation) — done, except a real payment provider.** **Phase 9 (admin) — done.**
 - `packages/core` — target engine, nutrition math, deterministic meal-text parser (tested)
 - `packages/db` — migrations (`0001` foundation, `0002` atomic onboarding + account deletion, `0003` nutrition), draft food seed, and a PGlite-based test suite for RLS, RPCs, search, totals and deletion
 - Phase 3: `0004_workouts.sql` (exercises, sessions, sets, templates, derived exercise history) + `seed/exercises.sql` (36 draft exercises) + deterministic double-progression rules in `core/progression.ts`
@@ -23,6 +23,12 @@ See `docs/ARCHITECTURE_PROPOSAL.md`.
   - `0009_billing.sql` — `plans`, `plan_prices` (INR minor units), `plan_features` (per-plan, with daily AI limits), `subscriptions`, `subscription_events` (idempotency key), `current_entitlements()`, `effective_plan()`, plan-aware `ai_consume()` (fail-closed), server-only `apply_subscription_event()`. Prices, limits and features are table data seeded with the PRD's target-test prices; nothing is hard-coded in app code. Users cannot write subscriptions.
   - `apps/api` — `POST /v1/billing/checkout|cancel|change` and `POST /webhooks/billing` (raw-body, signature-verified, idempotent) behind a `BillingProvider` interface; AI endpoints return `402 upgrade_required` for plans without the feature (crisis/safety replies are never gated).
   - Web: Subscription page, public Pricing page (reads plans from the DB), `FeatureGate`, entitlements context; Coach, Daily Fitness Score, weekly/monthly reports and workout progression are gated per the PRD's Pro tier.
+- Phase 9 (`0010_admin.sql`, `apps/web/src/pages/admin`):
+  - Roles `support | content | finance | super`, enforced by RLS and role checks inside DB functions (the UI tab list is only a convenience). Content → shared foods/exercises/announcements; finance → plans/prices/features/subscriptions; support → user directory, feedback, AI review; super → everything incl. admins, flags, system settings, audit log. The last super admin can't be removed.
+  - Admins do **not** get blanket access to user data: they can't read food/workout/weight/chat rows, users' private foods, or profiles. The user directory returns account basics only; flagged AI exchanges are pseudonymised. Both are audited.
+  - Every admin edit of shared data is recorded by a DB trigger (`audit_logs`, with old/new values); only super admins can read the log.
+  - Feedback (submit in Settings, triage in admin), in-app announcements (audience: all/free/paid, dismissible), feature flags with stable per-user rollout (`ai_coach` is the AI kill switch, honoured by the API), first-party analytics events (`track_event`; names only, no health values) and aggregate metrics (DAU/WAU/MAU, D1/D7/D30 retention, logging frequency, AI usage, conversion, churn, MRR/ARPU/ARPPU).
+  - **Bootstrap the first admin** with SQL (there's deliberately no UI path): `insert into admin_users(user_id, role) values ('<auth user id>', 'super');`
 - `apps/web` — Vite + React: auth, onboarding (single RPC), dashboard, nutrition logging (search + describe-a-meal, edit, delete, water), settings (export / delete account), draft privacy & terms
 
 ## Run
@@ -50,5 +56,7 @@ Apply `packages/db/migrations/*.sql` in order, then `packages/db/seed/foods.sql`
 - **Gating is only server-enforced for AI** (coach and report summaries, via the plan check in `ai_consume` and the API). Daily score, reports and progression suggestions are computed in the browser from the user's own data, so their gate is a UI gate; moving that computation server-side is needed if it must be tamper-proof.
 - `subscription_events` rows are deleted with the account (cascade). Whether billing records must be retained for tax/legal reasons needs a decision with legal/finance. `effective_plan()` (SQL) and `effectivePlan()` (TS) are duplicated and tested against the same scenarios; the SQL reads skew hours from `app_settings.billing`, the TS default must match.
 - Plan feature lists include items not built yet (voice logging, AI meal planning, etc.); the UI marks those "coming soon". Don't sell them until they exist.
+- Admin gaps: no user suspension/impersonation, no per-user subscription overrides (comp plans), no email/push notifications, no bulk import for foods, admin list shows admin user ids (not emails), and the AI panel can't mark items reviewed. MFA for admin accounts (PRD security section) must be enabled in Supabase Auth — not enforced by this code. "Content" management = announcements only.
+- Analytics: events are recorded unless the user withdrew `analytics` consent (no UI for withdrawing yet; the Privacy text says users can ask) — confirm the legal basis and add a consent toggle. Users can insert events for themselves, so a malicious user could inflate their own counts. LTV/CAC are not computed (need acquisition-cost data).
 - Voice and photo logging are not built. Privacy/Terms are placeholders pending legal review.
 - Account deletion removes DB rows via `auth.users` cascade; storage/provider-side purge is needed once uploads exist.

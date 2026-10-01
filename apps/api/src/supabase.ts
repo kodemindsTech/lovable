@@ -24,6 +24,11 @@ export function makeAuthenticator(url: string, anonKey: string) {
         if (e) throw new Error(e.message);
         return v === true;
       },
+      async flagEnabled(key) {
+        const { data: v, error: e } = await c.rpc("my_flags");
+        if (e) throw new Error(e.message);
+        return (v as Record<string, boolean> | null)?.[key] !== false;   // unknown flag = on; only an explicit off disables
+      },
       async hasFeature(feature) {
         const { data: v, error: e } = await c.rpc("current_entitlements");
         if (e) throw new Error(e.message);

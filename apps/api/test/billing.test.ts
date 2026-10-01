@@ -14,7 +14,7 @@ interface S { plan: string; sub: { planId: string; interval: string; status: str
 let s: S; let provider: FakeBillingProvider;
 
 const scope = (): UserScope => ({
-  userId: "u1", hasConsent: async () => true, hasFeature: async () => s.feature,
+  userId: "u1", hasConsent: async () => true, flagEnabled: async () => true, hasFeature: async () => s.feature,
   consumeQuota: async () => s.consume, getPrice: async (p, i) => (s.priceMissing ? null : { amountMinor: p === "pro" ? 29900 : 49900, currency: "INR", providerPriceId: `price_${p}_${i}` }),
   getSubscription: async () => s.sub, currentPlan: async () => s.plan, trialEligible: async () => s.trialOk, email: () => "u@example.com",
   loadContextInput: async () => input, loadReport: async () => { throw new Error("not used"); }, saveNarrative: async () => undefined,

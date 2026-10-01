@@ -1,5 +1,8 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { useEffect } from "react";
+import { useAdminRole } from "../lib/admin";
+import { trackOnce } from "../lib/analytics";
 
 const nav = [
   { to: "/", label: "Home", end: true },
@@ -16,11 +19,13 @@ const extra = [
 ];
 
 export function Layout() {
+  const { role } = useAdminRole();
+  useEffect(() => { trackOnce("app_opened"); }, []);
   return (
     <div className="shell">
       <aside className="sidebar" aria-label="Primary">
         <strong className="brand">Fitness OS</strong>
-        {[...nav, ...extra].map((n) => (
+        {[...nav, ...extra, ...(role ? [{ to: "/admin", label: "Admin" }] : [])].map((n) => (
           <NavLink key={n.to} to={n.to} end={"end" in n} className="navlink">{n.label}</NavLink>
         ))}
         <button className="link" onClick={() => supabase.auth.signOut()}>Sign out</button>

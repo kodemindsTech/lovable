@@ -4,7 +4,28 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { setAiConsent } from "../lib/coach";
 
-const EXPORT_TABLES = ["profiles", "goals", "nutrition_targets", "target_history", "consents", "meal_logs", "food_logs", "water_logs", "workout_sessions", "session_exercises", "workout_sets", "workout_templates", "template_exercises", "activities", "running_sessions", "weight_logs", "body_measurements", "daily_scores", "ai_conversations", "ai_messages"] as const;
+const EXPORT_TABLES = ["profiles", "goals", "nutrition_targets", "target_history", "consents", "meal_logs", "food_logs", "water_logs", "workout_sessions", "session_exercises", "workout_sets", "workout_templates", "template_exercises", "activities", "running_sessions", "weight_logs", "body_measurements", "daily_scores", "ai_conversations", "ai_messages", "feedback", "events", "weekly_reports"] as const;
+
+function FeedbackForm() {
+  const { session } = useAuth();
+  const [category, setCategory] = useState("idea"); const [text, setText] = useState(""); const [msg, setMsg] = useState<string | null>(null);
+  async function send() {
+    if (!text.trim()) return setMsg("Write a message first.");
+    const { error } = await supabase.from("feedback").insert({ user_id: session!.user.id, category, message: text.trim().slice(0, 2000), page: window.location.pathname });
+    if (error) setMsg(`Could not send: ${error.message}`); else { setText(""); setMsg("Thanks — we've received your feedback."); }
+  }
+  return (
+    <section className="card stack">
+      <h2>Send feedback</h2>
+      <select aria-label="Feedback type" value={category} onChange={(e) => setCategory(e.target.value)}>
+        <option value="idea">Idea</option><option value="bug">Bug</option><option value="data_issue">Wrong food/exercise data</option><option value="other">Other</option>
+      </select>
+      <textarea rows={3} aria-label="Your feedback" maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} placeholder="Please don't include sensitive personal information." />
+      <button onClick={send}>Send</button>
+      {msg && <p role="status">{msg}</p>}
+    </section>
+  );
+}
 
 export default function Settings() {
   const { session } = useAuth();
@@ -57,6 +78,7 @@ export default function Settings() {
         <label>Type DELETE to confirm<input value={confirm} onChange={(e) => setConfirm(e.target.value)} /></label>
         <button className="danger" disabled={busy || confirm !== "DELETE"} onClick={deleteAccount}>Delete my account</button>
       </section>
+      <FeedbackForm />
       {msg && <p role="alert">{msg}</p>}
       <p className="muted"><Link to="/subscription">Subscription</Link> · <Link to="/privacy">Privacy</Link> · <Link to="/terms">Terms</Link></p>
     </>

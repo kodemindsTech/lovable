@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CoachError, SUGGESTED, hasAiConsent, latestConversation, sendMessage, setAiConsent, type CoachReply, type CoachResponse, type StoredMessage } from "../lib/coach";
 import { ScreenState } from "../components/ScreenState";
 import { FeatureGate } from "../components/FeatureGate";
+import { track } from "../lib/analytics";
 
 interface Turn { id: string; role: "user" | "assistant"; text: string; reply?: CoachReply; source?: CoachResponse["source"] | null; fallback?: CoachResponse["fallback_reason"] }
 
@@ -38,7 +39,7 @@ function CoachInner() {
       }
     } catch (e) { setError((e as Error).message); } finally { setLoading(false); }
   }
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); track("ai_opened"); }, []);
   useEffect(() => { end.current?.scrollIntoView?.({ block: "end" }); }, [turns.length]);
 
   async function send(message: string) {

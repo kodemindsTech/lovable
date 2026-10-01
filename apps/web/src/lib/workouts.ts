@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { SessionSets } from "@fitness-os/core";
+import { track } from "./analytics";
 
 export interface Exercise { id: string; name: string; muscle_group: string; equipment: string; difficulty: string; instructions: string | null; tracks: "weight_reps" | "reps" | "duration" }
 export interface Session { id: string; local_date: string; workout_name: string; duration_min: number | null; notes: string | null; completed: boolean; started_at: string }
@@ -11,8 +12,11 @@ const numOrNull = (v: unknown) => (v == null ? null : Number(v));
 
 export const searchExercises = async (q: string): Promise<Exercise[]> =>
   must(await supabase.rpc("search_exercises", { q, lim: 12 })) ?? [];
-export const startSession = async (date: string, name: string, template: string | null): Promise<Session> =>
-  must(await supabase.rpc("start_session", { p_date: date, p_name: name, p_template: template })) as Session;
+export const startSession = async (date: string, name: string, template: string | null): Promise<Session> => {
+  const s = must(await supabase.rpc("start_session", { p_date: date, p_name: name, p_template: template })) as Session;
+  track("workout_started");
+  return s;
+};
 export const listSessions = async (): Promise<Session[]> =>
   must(await supabase.from("workout_sessions").select("*").order("local_date", { ascending: false }).order("started_at", { ascending: false }).limit(50)) ?? [];
 export const listTemplates = async (): Promise<Template[]> =>
@@ -51,6 +55,7 @@ export async function addSet(s: { session: string; exercise: string; setNumber: 
 export const deleteSet = async (id: string) => { must(await supabase.from("workout_sets").delete().eq("id", id)); };
 export const updateSession = async (id: string, patch: Partial<Pick<Session, "completed" | "duration_min" | "notes" | "workout_name">>) => {
   must(await supabase.from("workout_sessions").update(patch).eq("id", id));
+  if (patch.completed === true) track("workout_completed");
 };
 
 /** Previous sessions' sets for an exercise, newest first (excludes the open session). */

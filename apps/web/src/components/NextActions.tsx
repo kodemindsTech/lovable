@@ -1,8 +1,11 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { trackOnce } from "../lib/analytics";
 import type { NextAction } from "@fitness-os/core";
 import { EstimateChip } from "./EstimateChip";
 
 export function NextActions({ actions }: { actions: NextAction[] }) {
+  useEffect(() => { if (actions.length) trackOnce("ai_recommendation_viewed"); }, [actions.length]);
   return (
     <section className="card stack" aria-label="What should I do now?">
       <h2>What should I do now?</h2>
