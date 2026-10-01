@@ -9,7 +9,7 @@ export function Privacy() {
       <h1>Privacy</h1>
       <p>We collect only what is needed to calculate your targets and show your progress: profile details (age, sex, height, weight), goals, and the food, water and other fitness data you log.</p>
       <p>This is health-related data. We process it only with your consent, to provide the app. You can export or permanently delete it at any time in Settings.</p>
-      <p>AI features are not enabled yet. When they are, you will be told what data is sent and why before anything is shared.</p>
+      <p>The AI coach is optional and off until you agree. When on, a summary of your logged data (goal, targets, today's totals, weight trend, weekly averages) and your question are sent to an AI provider to generate an answer; your name, email and account details are not sent. You can withdraw consent at any time. Conversations are stored in your account and deleted with it.</p>
       <Link to="/">Back</Link>
     </article>
   );

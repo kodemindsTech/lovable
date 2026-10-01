@@ -69,3 +69,9 @@ ol.list { padding-left: 0; }
 .pill.on_track { color: var(--accent); border-color: var(--accent); } .pill.slightly_off { color: #b45309; border-color: #b45309; } .pill.off_track { color: #b42318; border-color: #b42318; }
 .small { font-size: 13px; } .action { border-top: 1px solid var(--border); padding-top: 10px; } .action:first-of-type { border-top: 0; padding-top: 0; }
 .action p { margin: 4px 0; } details summary { cursor: pointer; color: var(--accent); }
+.bubble { padding: 10px 14px; border-radius: 14px; max-width: 92%; white-space: pre-wrap; }
+.bubble p { margin: 4px 0; } .bubble ul { margin: 4px 0; padding-left: 18px; }
+.bubble.me { align-self: flex-end; background: var(--accent); color: #fff; }
+.bubble.bot { align-self: flex-start; background: var(--card); border: 1px solid var(--border); }
+.bubble.safety { border-color: #b45309; }
+.composer { margin-top: 12px; flex-wrap: nowrap; }

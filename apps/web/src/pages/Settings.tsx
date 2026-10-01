@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
+import { setAiConsent } from "../lib/coach";
 
-const EXPORT_TABLES = ["profiles", "goals", "nutrition_targets", "target_history", "consents", "meal_logs", "food_logs", "water_logs"] as const;
+const EXPORT_TABLES = ["profiles", "goals", "nutrition_targets", "target_history", "consents", "meal_logs", "food_logs", "water_logs", "workout_sessions", "session_exercises", "workout_sets", "workout_templates", "template_exercises", "activities", "running_sessions", "weight_logs", "body_measurements", "daily_scores", "ai_conversations", "ai_messages"] as const;
 
 export default function Settings() {
   const { session } = useAuth();
@@ -44,6 +45,11 @@ export default function Settings() {
         <h2>Your data</h2>
         <p className="muted">Download everything we store about you as JSON.</p>
         <button disabled={busy} onClick={exportData}>Export my data</button>
+      </section>
+      <section className="card stack">
+        <h2>AI coach</h2>
+        <p className="muted">The coach is optional. Withdrawing consent stops it from using your data; you can turn it back on from the Coach page.</p>
+        <button className="ghost" disabled={busy} onClick={async () => { try { await setAiConsent(false); setMsg("AI consent withdrawn."); } catch (e) { setMsg((e as Error).message); } }}>Withdraw AI consent</button>
       </section>
       <section className="card stack">
         <h2>Delete account</h2>
