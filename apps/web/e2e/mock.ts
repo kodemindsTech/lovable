@@ -2,7 +2,7 @@ import type { Page, Route } from "@playwright/test";
 
 /** In-browser fake of Supabase REST + the coach API, so UI flows run without any backend. */
 export interface MockOpts {
-  signedIn?: boolean; onboarded?: boolean; role?: string | null; plan?: "free" | "pro";
+  rich?: boolean; signedIn?: boolean; onboarded?: boolean; role?: string | null; plan?: "free" | "pro";
   failFirst?: string[];            // URL fragments that return 500 on first call (to test retry)
   coachReply?: object | { status: number; body: object };
 }
@@ -38,14 +38,18 @@ export async function mockBackend(page: Page, o: MockOpts = {}) {
     if (u.includes("search_foods")) return j([FOOD]);
     if (u.includes("rpc/log_food")) return j({});
     if (u.includes("day_totals")) return j([{ calories: 1760, protein_g: 137, carbs_g: 180, fat_g: 55, fibre_g: 25, water_ml: 250 }]);
+    if (o.rich && u.includes("/food_logs") && !u.includes("local_date=eq")) return j(Array.from({ length: 20 }, (_, n) => ({ id: `l${n}`, name: "Meal", quantity: 1, serving_label: "1", calories: 1900 + (n % 5) * 60, protein_g: n < 7 ? 128 : 104, carbs_g: 200, fat_g: 55, fibre_g: 24, source_status: "ai_estimated", meal_logs: { local_date: day(n), meal_type: "lunch" } })));
     if (u.includes("/food_logs")) return j([{ id: "l1", name: "Roti (chapati)", quantity: 2, serving_label: "1 piece", calories: 240, protein_g: 7.2, carbs_g: 44, fat_g: 5, fibre_g: 6, source_status: "ai_estimated", meal_logs: { local_date: day(), meal_type: "breakfast" } }]);
     if (u.includes("/foods")) return j([{ ...FOOD, food_categories: { name: "Breads" } }]);
     if (u.includes("/goals")) return j({ goal: "lose_fat", start_weight_kg: "82", target_weight_kg: "75" });
     if (u.includes("/weight_logs")) return j([28, 14, 0].map((n, i) => ({ local_date: day(n), weight_kg: String(82 - i) })));
+    if (o.rich && u.includes("/activities") && !u.includes("type=eq.steps")) return j(Array.from({ length: 20 }, (_, n) => ({ id: `a${n}`, local_date: day(n), type: n % 4 === 1 ? "run" : "steps", steps: n % 4 === 1 ? null : (n < 7 ? 9300 : 7100), distance_km: n % 4 === 1 ? "5.2" : null, duration_min: n % 4 === 1 ? "31.5" : null, active_kcal: null, source: "manual" })));
     if (u.includes("/activities")) return j(u.includes("type=eq.steps") ? { steps: 11420 } : [{ id: "a1", local_date: day(), type: "steps", steps: 11420, distance_km: null, duration_min: null, active_kcal: null, source: "manual" }]);
     if (u.includes("/workout_sessions")) return j(u.includes("id=eq.") ? { id: "s1", local_date: day(), workout_name: "Push", duration_min: null, notes: null, completed: false, started_at: "" } : [{ id: "s1", local_date: day(), workout_name: "Push", duration_min: 45, notes: null, completed: true, started_at: "" }]);
-    if (u.includes("/session_exercises")) return j([]);
-    if (u.includes("/workout_sets")) return j([]);
+    const BENCH = { id: "e1", name: "Barbell Bench Press", muscle_group: "Chest", equipment: "Barbell", difficulty: "intermediate", instructions: "", tracks: "weight_reps" };
+    if (u.includes("/session_exercises")) return j(o.rich ? [{ exercise_id: "e1", position: 0, exercises: BENCH }] : []);
+    if (u.includes("exercise_history")) return j(o.rich ? [{ session_id: "p", local_date: day(3), sets: [{ set: 1, weight_kg: 60, reps: 12 }, { set: 2, weight_kg: 60, reps: 12 }] }] : []);
+    if (u.includes("/workout_sets")) return j(o.rich ? [{ id: "x1", session_id: "s1", exercise_id: "e1", set_number: 1, weight_kg: "60", reps: 10, duration_s: null }] : []);
     if (u.includes("/workout_templates")) return j([]);
     if (u.includes("/plan_prices")) return j([{ plan_id: "pro", interval: "month", currency: "INR", amount_minor: 29900 }]);
     if (u.includes("/plan_features")) return j(PRO.map((k) => ({ plan_id: "pro", feature_key: k })));
