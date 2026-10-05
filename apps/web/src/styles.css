@@ -3,8 +3,9 @@
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #0e1116; --card: #171b22; --text: #eef1f5; --muted: #9aa4b2; --accent: #2dd4bf; --border: #262c36; }
+  :root:not([data-theme="light"]) { --bg: #0e1116; --card: #171b22; --text: #eef1f5; --muted: #9aa4b2; --accent: #2dd4bf; --border: #262c36; color-scheme: dark; }
 }
+:root[data-theme="dark"] { --bg: #0e1116; --card: #171b22; --text: #eef1f5; --muted: #9aa4b2; --accent: #2dd4bf; --border: #262c36; color-scheme: dark; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); }
 .muted { color: var(--muted); }
@@ -85,3 +86,6 @@ ol.list { padding-left: 0; }
 .admin-tabs .navlink.active { border-color: var(--accent); }
 .tablewrap { overflow-x: auto; } table { border-collapse: collapse; width: 100%; font-size: 14px; } th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .banner { border-left: 4px solid var(--accent); }
+.demobar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 12px; background: #fff7e6; color: #5b3a00; border-bottom: 1px solid #f0d9a8; font-size: 14px; }
+@media (prefers-color-scheme: dark) { .demobar { background: #3b2d0f; color: #ffe2a8; border-color: #5c4519; } }
+.demobar .democtl { margin-left: auto; display: flex; gap: 10px; align-items: center; } .demobar select { padding: 4px; font-size: 14px; } .demobar label { flex-direction: row; align-items: center; gap: 4px; }

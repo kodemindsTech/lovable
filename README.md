@@ -64,3 +64,6 @@ Apply `packages/db/migrations/*.sql` in order, then `packages/db/seed/foods.sql`
 - Analytics: events are recorded unless the user withdrew `analytics` consent (no UI for withdrawing yet; the Privacy text says users can ask) — confirm the legal basis and add a consent toggle. Users can insert events for themselves, so a malicious user could inflate their own counts. LTV/CAC are not computed (need acquisition-cost data).
 - Voice and photo logging are not built. Privacy/Terms are placeholders pending legal review.
 - Account deletion removes DB rows via `auth.users` cascade; storage/provider-side purge is needed once uploads exist.
+
+## Interactive demo (no backend needed)
+`pnpm --filter @fitness-os/web build:demo` → `apps/web/dist-demo/index.html`, a single file you can open in a browser. It runs the real UI against an in-browser fake backend (`apps/web/src/demo/backend.ts`) with sample data; AI replies are simulated and nothing is saved. Use the bar at the top to switch Free/Pro and Admin views. Demo code is only included when `VITE_DEMO=1`.

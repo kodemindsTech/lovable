@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { isConfigured } from "./lib/supabase";
 import { useProfile } from "./lib/profile";
@@ -94,6 +94,8 @@ function Gate() {
   );
 }
 
+const Router = import.meta.env.VITE_DEMO === "1" ? HashRouter : BrowserRouter;   // hash routing so the demo works from any URL
+
 export default function App() {
   if (!isConfigured)
     return (
@@ -103,8 +105,8 @@ export default function App() {
       </div>
     );
   return (
-    <BrowserRouter>
+    <Router>
       <AuthProvider><Gate /></AuthProvider>
-    </BrowserRouter>
+    </Router>
   );
 }
